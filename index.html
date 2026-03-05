@@ -1052,8 +1052,17 @@ if (savedAttendance) {
         }
         
     } catch (error) {
+    console.log('에러 상세:', error);
+    
+    if (error.code === 1 || error.code === 2 || error.code === 3) {
+        // 진짜 GPS 오류
         document.getElementById('location-status').innerHTML = 
             '❌ GPS 오류 - 위치 서비스를 켜주세요';
+    } else {
+        // 다른 오류 (서버 통신 등)
+        document.getElementById('location-status').innerHTML = 
+            '❌ 서버 오류 - 다시 시도해주세요';
+    }
         
         setTimeout(() => {
             document.getElementById('location-status').style.display = 'none';
