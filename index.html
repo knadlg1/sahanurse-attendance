@@ -937,6 +937,15 @@ if (savedAttendance) {
     
     // ==================== 출결 처리 공통 ====================
     async function processAttendance(type) {
+    // 무조건 서버에서 최신 정보 가져오기 (출근이든 퇴근이든)
+    await verifyStudent();
+    
+    if (remainingTime <= 0) {
+        alert('세션이 만료되었습니다. QR을 다시 스캔해주세요.');
+        return;
+    }
+    
+    // 이하 기존 코드...
     // currentUser 완전 복원
     const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
     if (savedUser) {
