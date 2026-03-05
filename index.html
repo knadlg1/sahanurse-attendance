@@ -123,13 +123,15 @@
         }
         
         .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    width: 100%;
+    text-align: center;
+}
         
         .status-waiting { background: #e2e8f0; color: #64748b; }
         .status-working { background: #dcfce7; color: #16a34a; }
@@ -333,7 +335,34 @@
     Kakao.init(CONFIG.KAKAO_KEY);
     
     // window.onload 함수 수정
-window.onload = async function() {
+
+    window.onload = async function() {
+    // 저장된 출결 정보 먼저 복원
+    const savedAttendance = localStorage.getItem('todayAttendance');
+    if (savedAttendance) {
+        const attendance = JSON.parse(savedAttendance);
+        const today = new Date().toDateString();
+        
+        if (attendance.date === today) {
+            // 오늘 출근 기록이 있으면 표시
+            if (attendance.checkIn) {
+                document.getElementById('check-in-value').textContent = attendance.checkIn;
+                document.getElementById('check-in-time').style.display = 'block';
+                document.getElementById('time-display').style.display = 'block';
+                document.getElementById('location-status').style.display = 'block';
+                document.getElementById('location-status').innerHTML = 
+                    `✅ 출근 완료! | 시간: ${attendance.checkIn} | 위치: 승인됨`;
+            }
+            if (attendance.checkOut) {
+                document.getElementById('check-out-value').textContent = attendance.checkOut;
+                document.getElementById('check-out-time').style.display = 'block';
+                document.getElementById('location-status').innerHTML = 
+                    `✅ 퇴근 완료! | 시간: ${attendance.checkOut} | 위치: 승인됨`;
+            }
+        }
+    }
+    
+    // 이하 기존 코드...
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     
@@ -723,8 +752,8 @@ function forceRedirect(url) {
         if (result.status === 'success') {
             currentUser.name = result.name;
             currentUser.hospital = result.hospital;
-            currentUser.hospitalLat = result.hospitalLat || 37.5665;  // 기본값
-            currentUser.hospitalLon = result.hospitalLon || 126.9780; // 기본값
+            currentUser.hospitalLat = result.hospitalLat || 35.0817;  // 기본값
+            currentUser.hospitalLon = result.hospitalLon || 128.9883; // 기본값
             
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
             
