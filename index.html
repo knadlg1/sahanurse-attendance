@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>사하간호학원 출결시스템</title>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .card { 
+            background: white; 
+            padding: 30px 25px;
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            animation: slideUp 0.5s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 { 
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .warning-box {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+        
+        .btn { 
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .kakao-btn { 
+            background: #FEE500;
+            color: #3c1e1e;
+        }
+        
+        .check-in-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .check-out-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .status-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .status-waiting { background: #e2e8f0; color: #64748b; }
+        .status-working { background: #dcfce7; color: #16a34a; }
+        .status-completed { background: #fef3c7; color: #d97706; }
+        
+        .time-display {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .time-label { 
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .time-value { 
+            color: #334155;
+            font-weight: 600;
+        }
+        
+        .user-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .user-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+        
+        .user-hospital {
+            font-size: 14px;
+            color: #64748b;
+        }
+        
+        .loader {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .location-status {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+        
+        .timer-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .timer-warning {
+            background: #dc2626;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .error-message {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 380px) {
+            .card { padding: 20px; }
+            h1 { font-size: 20px; }
+            .btn { padding: 14px; font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="timer-display" id="timer-display">
+    ⏱ 남은 시간: <span id="timer-text">10:00</span>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h1>🏥 사하제일간호학원</h1>
+        <p class="subtitle">실습 출결 관리 시스템</p>
+        
+        <div class="warning-box" id="session-expired">
+            ⚠️ 세션이 만료되었습니다<br>
+            QR코드를 다시 스캔해주세요
+        </div>
+        
+        <div class="info-box" id="info-message">
+            출결 인증을 시작하세요
+        </div>
+        
+        <!-- 로그인 전 화면 -->
+        <div id="login-section">
+            <button class="btn kakao-btn" id="kakao-login-btn" onclick="loginWithKakao()">
+                카카오톡으로 시작하기
+            </button>
+            <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 10px;">
+                ※ 병원 QR코드를 먼저 스캔하셨나요?
+            </p>
+        </div>
+        
+        <!-- 로그인 후 화면 -->
+        <div id="main-section" style="display: none;">
+            <div class="user-info">
+                <div class="user-name" id="user-name">-</div>
+                <div class="user-hospital" id="user-hospital">-</div>
+            </div>
+            
+            <div class="status-card">
+                <div id="status-badge" class="status-badge status-waiting">대기 중</div>
+                <div class="time-display" id="time-display" style="display: none;">
+                    <div class="time-row" id="check-in-time" style="display: none;">
+                        <span class="time-label">출근 시간</span>
+                        <span class="time-value" id="check-in-value">-</span>
+                    </div>
+                    <div class="time-row" id="check-out-time" style="display: none;">
+                        <span class="time-label">퇴근 시간</span>
+                        <span class="time-value" id="check-out-value">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn check-in-btn" id="check-in-btn" onclick="doCheckIn()" style="display: none;">
+                출근하기
+            </button>
+            <button class="btn check-out-btn" id="check-out-btn" onclick="doCheckOut()" style="display: none;">
+                퇴근하기
+            </button>
+        </div>
+        
+        <div class="loader" id="loader"></div>
+        <div class="location-status" id="location-status"></div>
+        <div class="error-message" id="error-message"></div>
+    </div>
+</div>
+
+<script>
+    // ==================== 설정 ====================
+    const CONFIG = {
+        KAKAO_KEY: '256604f2f245388033b0226667539d5f',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbzEgPWJVE_AXAqsrIUzCrRM3ebWvhHHcFJsoqGe8FU0kIOixWp8A1hqbCNKlOxRMWyAZA/exec',
+        SESSION_DURATION: 10 * 60 * 1000, // 10분
+        MAX_DISTANCE: 300, // 미터
+        GPS_TIMEOUT: 20000, // 20초
+        GPS_MAX_AGE: 0
+    };
+    
+    // ==================== 전역 변수 ====================
+    let currentUser = {
+        kakaoId: null,
+        name: null,
+        hospital: null,
+        hospitalLat: null,
+        hospitalLon: null
+    };
+    
+    let sessionTimer = null;
+    let remainingTime = CONFIG.SESSION_DURATION;
+    
+    // ==================== 초기화 ====================
+    Kakao.init(CONFIG.KAKAO_KEY);
+    
+    window.onload = async function() {
+    // 카카오 로그인에서 돌아왔는지 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code && sessionStorage.getItem('kakaoLoginAttempt') === 'true') {
+        // 카카오에서 돌아온 경우
+        sessionStorage.removeItem('kakaoLoginAttempt');
+        showLoader(true);
+        
+        try {
+            // 코드로 토큰 받기 (서버 통해서 해야 함)
+            const response = await fetch(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'kakaoLogin',
+                    code: code
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.kakaoId) {
+                currentUser.kakaoId = result.kakaoId;
+                await verifyStudent();
+            } else {
+                alert('카카오 로그인 실패');
+                showLoader(false);
+            }
+        } catch(e) {
+            alert('로그인 처리 중 오류');
+            showLoader(false);
+        }
+    } else {
+        // 일반 접속
+        initializeSession();
+        checkMidnightReset();
+        preventBackButton();
+    }
+};
+    
+    // ==================== 세션 관리 ====================
+    function initializeSession() {
+        const qrScanTime = sessionStorage.getItem('qrScanTime');
+        const now = Date.now();
+        
+        if (!qrScanTime) {
+            // 처음 접속 - QR 스캔으로 간주
+            sessionStorage.setItem('qrScanTime', now.toString());
+            startSessionTimer();
+            enableUI();
+        } else {
+            // 재접속 - 시간 체크
+            const elapsed = now - parseInt(qrScanTime);
+            if (elapsed < CONFIG.SESSION_DURATION) {
+                // 아직 유효함
+                remainingTime = CONFIG.SESSION_DURATION - elapsed;
+                startSessionTimer();
+                enableUI();
+                
+                // 이미 로그인했었는지 확인
+                const savedUser = sessionStorage.getItem('currentUser');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    showMainSection();
+                    checkTodayStatus();
+                }
+            } else {
+                // 만료됨
+                expireSession();
+            }
+        }
+    }
+    
+    function startSessionTimer() {
+        document.getElementById('timer-display').style.display = 'block';
+        updateTimerDisplay();
+        
+        sessionTimer = setInterval(() => {
+            remainingTime -= 1000;
+            updateTimerDisplay();
+            
+            if (remainingTime <= 0) {
+                expireSession();
+            } else if (remainingTime <= 60000) { // 1분 남음
+                document.getElementById('timer-display').classList.add('timer-warning');
+            }
+        }, 1000);
+    }
+    
+    function updateTimerDisplay() {
+        const minutes = Math.floor(remainingTime / 60000);
+        const seconds = Math.floor((remainingTime % 60000) / 1000);
+        document.getElementById('timer-text').textContent = 
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    function expireSession() {
+        clearInterval(sessionTimer);
+        sessionStorage.clear();
+        document.getElementById('session-expired').style.display = 'block';
+        document.getElementById('kakao-login-btn').disabled = true;
+        document.getElementById('kakao-login-btn').textContent = 'QR 재스캔 필요';
+        document.getElementById('timer-display').style.display = 'none';
+        disableAllButtons();
+    }
+    
+    function enableUI() {
+        document.getElementById('kakao-login-btn').disabled = false;
+    }
+    
+    function disableAllButtons() {
+        document.getElementById('check-in-btn').disabled = true;
+        document.getElementById('check-out-btn').disabled = true;
+    }
+    
+    // ==================== 자정 리셋 ====================
+    function checkMidnightReset() {
+        const checkTime = () => {
+            const now = new Date();
+            if (now.getHours() === 0 && now.getMinutes() === 0) {
+                const lastReset = localStorage.getItem('lastResetDate');
+                const today = now.toDateString();
+                
+                if (lastReset !== today) {
+                    localStorage.setItem('lastResetDate', today);
+                    sessionStorage.clear();
+                    alert('새로운 날이 시작되었습니다. 출결 정보가 초기화됩니다.');
+                    location.reload();
+                }
+            }
+        };
+        
+        checkTime();
+        setInterval(checkTime, 60000); // 1분마다 체크
+    }
+    
+    // ==================== 카카오 로그인 ====================
+  function loginWithKakao() {
+    if (remainingTime <= 0) {
+        alert('세션이 만료되었습니다.');
+        return;
+    }
+    
+    // Step 1: URL 생성 및 표시
+    const REST_API_KEY = 'YOUR_REST_API_KEY';
+    const REDIRECT_URI = 'https://www.sahanurse.com/here';
+    const kakaoURL = `https://kauth.kakao.com/oauth/authorize?client_id=${REST_API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code`;
+    
+    // Step 2: 복사 가능한 링크 표시
+    document.getElementById('info-message').innerHTML = 
+        `<a href="${kakaoURL}" target="_blank" style="color: white; text-decoration: underline;">
+        ▶ 여기를 클릭해서 카카오 로그인 ◀
+        </a>`;
+    
+    // Step 3: 자동 복사
+    navigator.clipboard.writeText(kakaoURL).then(() => {
+        alert('카카오 로그인 주소가 복사되었습니다.\n새 탭에서 붙여넣기 하세요.');
+    });
+}
+    
+    // ==================== 학생 확인 ====================
+    async function verifyStudent() {
+        try {
+            const deviceId = generateDeviceId();
+            
+            const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'checkStudent',
+                    kakaoId: currentUser.kakaoId,
+                    deviceId: deviceId
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'found') {
+                // 등록된 학생
+                currentUser.name = result.name;
+                currentUser.hospital = result.hospital;
+                currentUser.hospitalLat = result.hospitalLat;
+                currentUser.hospitalLon = result.hospitalLon;
+                
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showMainSection();
+                checkTodayStatus();
+                
+            } else if (result.status === 'not_found') {
+                // 미등록 학생
+                await registerNewStudent(deviceId);
+                
+            } else if (result.status === 'device_mismatch') {
+                showLoader(false);
+                alert('등록된 기기가 아닙니다. 본인 휴대폰으로 접속해주세요.');
+                Kakao.Auth.logout();
+                
+            } else {
+                throw new Error('Unknown status');
+            }
+            
+        } catch (error) {
+            showLoader(false);
+            showError('서버 연결 실패. 잠시 후 다시 시도해주세요.');
+        }
+    }
+    
+    // ==================== 신규 학생 등록 ====================
+    async function registerNewStudent(deviceId) {
+        showLoader(false);
+        
+        const name = prompt('이름을 입력하세요:');
+        if (!name) {
+            location.reload();
+            return;
+        }
+        
+        const phone = prompt('전화번호를 입력하세요 (예: 010-1234-5678):');
+        if (!phone) {
+            location.reload();
+            return;
+        }
+        
+        showLoader(true);
+        
+        try {
+            const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'registerStudent',
+                    kakaoId: currentUser.kakaoId,
+                    deviceId: deviceId,
+                    name: name,
+                    phone: phone
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                currentUser.name = result.name;
+                currentUser.hospital = result.hospital;
+                currentUser.hospitalLat = result.hospitalLat;
+                currentUser.hospitalLon = result.hospitalLon;
+                
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                alert(`${currentUser.name}님 등록이 완료되었습니다!\n실습병원: ${currentUser.hospital}`);
+                showMainSection();
+                checkTodayStatus();
+                
+            } else {
+                showLoader(false);
+                alert('등록 실패. 학원에 문의해주세요.\n(명단에 없는 학생입니다)');
+                location.reload();
+            }
+            
+        } catch (error) {
+            showLoader(false);
+            showError('등록 중 오류가 발생했습니다.');
+        }
+    }
+    
+    // ==================== 오늘 출결 상태 확인 ====================
+    async function checkTodayStatus() {
+        try {
+            const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'getTodayStatus',
+                    kakaoId: currentUser.kakaoId
+                })
+            });
+            
+            const result = await response.json();
+            showLoader(false);
+            
+            if (result.checkIn) {
+                // 출근함
+                document.getElementById('check-in-value').textContent = result.checkIn;
+                document.getElementById('check-in-time').style.display = 'block';
+                document.getElementById('time-display').style.display = 'block';
+                
+                if (result.checkOut) {
+                    // 퇴근도 함
+                    document.getElementById('check-out-value').textContent = result.checkOut;
+                    document.getElementById('check-out-time').style.display = 'block';
+                    updateStatus('completed');
+                } else {
+                    // 아직 퇴근 안함
+                    updateStatus('working');
+                    document.getElementById('check-out-btn').style.display = 'block';
+                }
+            } else {
+                // 아직 출근 안함
+                updateStatus('waiting');
+                document.getElementById('check-in-btn').style.display = 'block';
+            }
+            
+        } catch (error) {
+            showLoader(false);
+            showError('상태 확인 실패');
+        }
+    }
+    
+    // ==================== 출근 처리 ====================
+    async function doCheckIn() {
+        await processAttendance('출근');
+    }
+    
+    // ==================== 퇴근 처리 ====================
+    async function doCheckOut() {
+        await processAttendance('퇴근');
+    }
+    
+    // ==================== 출결 처리 공통 ====================
+    async function processAttendance(type) {
+        if (remainingTime <= 0) {
+            alert('세션이 만료되었습니다. QR을 다시 스캔해주세요.');
+            return;
+        }
+        
+        document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = true;
+        document.getElementById('location-status').style.display = 'block';
+        document.getElementById('location-status').textContent = '📍 위치 확인 중...';
+        
+        try {
+            const position = await getCurrentPosition();
+            const distance = calculateDistance(
+                position.coords.latitude,
+                position.coords.longitude,
+                currentUser.hospitalLat,
+                currentUser.hospitalLon
+            );
+            
+            document.getElementById('location-status').innerHTML = 
+                `📍 병원과의 거리: ${Math.round(distance)}m<br>` +
+                `GPS 정확도: ${Math.round(position.coords.accuracy)}m`;
+            
+            const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 50);
+            
+            if (distance <= maxAllowedDistance) {
+                // 위치 확인 성공
+                document.getElementById('location-status').innerHTML = 
+                    '✅ 위치 확인 완료! 출결 처리 중...';
+                
+                const now = new Date();
+                const timeString = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                
+                const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'recordAttendance',
+                        type: type,
+                        kakaoId: currentUser.kakaoId,
+                        name: currentUser.name,
+                        hospital: currentUser.hospital,
+                        time: timeString,
+                        accuracy: Math.round(position.coords.accuracy),
+                        distance: Math.round(distance)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    document.getElementById('location-status').innerHTML = 
+                        `✅ ${type} 완료!`;
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } else {
+                // 위치 확인 실패
+                alert(`⚠️ 위치 인증 실패\n\n병원과의 거리: ${Math.round(distance)}m\n허용 범위: ${Math.round(maxAllowedDistance)}m\n\n병원 내에서 다시 시도해주세요.`);
+                document.getElementById('location-status').style.display = 'none';
+                document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = false;
+            }
+            
+        } catch (error) {
+            document.getElementById('location-status').style.display = 'none';
+            document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = false;
+            
+            if (error.code === 1) {
+                alert('위치 권한을 허용해주세요.\n\n설정 > 개인정보 보호 > 위치 서비스');
+            } else if (error.code === 2) {
+                alert('위치를 확인할 수 없습니다.\nGPS를 켜주세요.');
+            } else if (error.code === 3) {
+                alert('위치 확인 시간 초과.\n실외나 창가로 이동 후 다시 시도해주세요.');
+            } else {
+                showError('처리 중 오류가 발생했습니다.');
+            }
+        }
+    }
+    
+    // ==================== 위치 관련 함수 ====================
+    async function getCurrentPosition() {
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                {
+                    enableHighAccuracy: true,
+                    timeout: CONFIG.GPS_TIMEOUT,
+                    maximumAge: CONFIG.GPS_MAX_AGE
+                }
+            );
+        });
+    }
+    
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // 지구 반경 (미터)
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        return R * c;
+    }
+    
+    // ==================== UI 업데이트 ====================
+    function showMainSection() {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('main-section').style.display = 'block';
+        document.getElementById('user-name').textContent = currentUser.name;
+        document.getElementById('user-hospital').textContent = currentUser.hospital;
+        document.getElementById('info-message').textContent = 
+            `${currentUser.hospital} 실습 출결`;
+    }
+    
+    function updateStatus(status) {
+        const badge = document.getElementById('status-badge');
+        
+        switch(status) {
+            case 'waiting':
+                badge.className = 'status-badge status-waiting';
+                badge.textContent = '출근 전';
+                break;
+            case 'working':
+                badge.className = 'status-badge status-working';
+                badge.textContent = '실습 중';
+                break;
+            case 'completed':
+                badge.className = 'status-badge status-completed';
+                badge.textContent = '실습 완료';
+                break;
+        }
+    }
+    
+    function showLoader(show) {
+        document.getElementById('loader').style.display = show ? 'block' : 'none';
+    }
+    
+    function showError(message) {
+        document.getElementById('error-message').textContent = message;
+        setTimeout(() => {
+            document.getElementById('error-message').textContent = '';
+        }, 5000);
+    }
+    
+    // ==================== 유틸리티 함수 ====================
+    function generateDeviceId() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('device', 2, 2);
+        
+        const deviceInfo = {
+            userAgent: navigator.userAgent,
+            screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language,
+            platform: navigator.platform || 'unknown',
+            canvas: canvas.toDataURL().substring(0, 50)
+        };
+        
+        return btoa(JSON.stringify(deviceInfo));
+    }
+    
+    async function fetchWithRetry(url, options, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (response.ok) return response;
+            } catch (error) {
+                if (i === retries - 1) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            }
+        }
+    }
+    
+    function preventBackButton() {
+        history.pushState(null, null, location.href);
+        window.onpopstate = function() {
+            history.go(1);
+        };
+    }
+</script>
+
+</body>
+</html>
