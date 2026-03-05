@@ -787,6 +787,19 @@ function forceRedirect(url) {
 // ==================== 오늘 출결 상태 확인 ====================
 async function checkTodayStatus() {
     console.log('출결 상태 확인 시작');
+
+    // currentUser 복원 체크
+    const savedUser = sessionStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        console.log('복원된 유저 정보:', currentUser);
+    }
+    
+    // 병원 좌표 없으면 다시 가져오기
+    if (!currentUser.hospitalLat || !currentUser.hospitalLon) {
+        console.log('병원 좌표 없음, 다시 확인');
+        await verifyStudent();
+    }
     
     try {
         const response = await fetchWithRetry(CONFIG.GAS_URL, {
@@ -884,8 +897,23 @@ async function checkTodayStatus() {
         document.getElementById('check-out-btn').style.display = 'none';
         document.getElementById('check-out-btn').disabled = true;
     }
-}
+
+    // localStorage에서 오늘 출근 기록 확인
+const savedAttendance = localStorage.getItem('todayAttendance');
+if (savedAttendance) {
+    const attendance = JSON.parse(savedAttendance);
+    const today = new Date().toDateString();
     
+    if (attendance.date === today && attendance.checkIn) {
+        // 오늘 이미 출근함
+        document.getElementById('check-in-btn').style.display = 'block';
+        document.getElementById('check-in-btn').disabled = true;
+        document.getElementById('check-in-btn').style.opacity = '0.5';
+        document.getElementById('check-out-btn').style.display = 'block';
+        document.getElementById('check-out-btn').disabled = false;
+    }
+  }
+}
     // ==================== 출근 처리 ====================
     async function doCheckIn() {
         await processAttendance('출근');
@@ -898,6 +926,18 @@ async function checkTodayStatus() {
     
     // ==================== 출결 처리 공통 ====================
     async function processAttendance(type) {
+        // currentUser 체크
+    const savedUser = sessionStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+    }
+    
+    console.log('현재 병원 좌표:', currentUser.hospitalLat, currentUser.hospitalLon);
+    
+    if (!currentUser.hospitalLat || !currentUser.hospitalLon) {
+        alert('병원 위치 정보를 다시 불러옵니다...');
+        await verifyStudent();
+    }
     if (remainingTime <= 0) {
         alert('세션이 만료되었습니다. QR을 다시 스캔해주세요.');
         return;
