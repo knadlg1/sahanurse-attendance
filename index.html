@@ -945,46 +945,6 @@ if (savedAttendance) {
         return;
     }
     
-    // 이하 기존 코드...
-    // currentUser 완전 복원
-    const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-    }
-    
-    if (!currentUser.kakaoId) {
-        currentUser.kakaoId = localStorage.getItem('realKakaoId') || localStorage.getItem('myKakaoId');
-    }
-    
-    console.log('현재 유저 정보:', currentUser);
-    console.log('현재 병원 좌표:', currentUser.hospitalLat, currentUser.hospitalLon);
-    
-    if (!currentUser.hospitalLat || !currentUser.hospitalLon) {
-        // 퇴근할 때 병원 좌표 다시 가져오기
-        const response = await fetch(CONFIG.GAS_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'checkStudent',
-                kakaoId: currentUser.kakaoId,
-                deviceId: generateDeviceId()
-            })
-        });
-        const result = await response.json();
-        
-        if (result.status === 'found') {
-            currentUser.hospitalLat = result.hospitalLat;
-            currentUser.hospitalLon = result.hospitalLon;
-        } else {
-            alert('학생 정보를 찾을 수 없습니다.');
-            return;
-        }
-    }
-    
-    if (remainingTime <= 0) {
-        alert('세션이 만료되었습니다. QR을 다시 스캔해주세요.');
-        return;
-    }
-    
     document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = true;
     document.getElementById('location-status').style.display = 'block';
     document.getElementById('location-status').innerHTML = 
