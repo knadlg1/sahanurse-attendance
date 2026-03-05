@@ -291,12 +291,13 @@
                 </div>
             </div>
             
-            <button class="btn check-in-btn" id="check-in-btn" onclick="doCheckIn()" style="display: none;">
-                출근하기
-            </button>
-            <button class="btn check-out-btn" id="check-out-btn" onclick="doCheckOut()" style="display: none;">
-                퇴근하기
-            </button>
+            <!-- 처음부터 둘 다 숨기고 비활성화 -->
+<button class="btn check-in-btn" id="check-in-btn" onclick="doCheckIn()" style="display: none;" disabled>
+    출근하기
+</button>
+<button class="btn check-out-btn" id="check-out-btn" onclick="doCheckOut()" style="display: none;" disabled>
+    퇴근하기
+</button>
         </div>
         
         <div class="loader" id="loader"></div>
@@ -467,14 +468,20 @@ function handleSimpleKakaoLogin(code) {
     }
     
     function expireSession() {
-        clearInterval(sessionTimer);
-        sessionStorage.clear();
-        document.getElementById('session-expired').style.display = 'block';
-        document.getElementById('kakao-login-btn').disabled = true;
-        document.getElementById('kakao-login-btn').textContent = 'QR 재스캔 필요';
-        document.getElementById('timer-display').style.display = 'none';
-        disableAllButtons();
-    }
+    clearInterval(sessionTimer);
+    sessionStorage.clear();
+    
+    document.getElementById('session-expired').style.display = 'block';
+    document.getElementById('kakao-login-btn').disabled = true;
+    document.getElementById('kakao-login-btn').textContent = 'QR 재스캔 필요';
+    document.getElementById('timer-display').style.display = 'none';
+    
+    // 🔥 모든 버튼 비활성화 + 숨기기
+    document.getElementById('check-in-btn').style.display = 'none';
+    document.getElementById('check-in-btn').disabled = true;
+    document.getElementById('check-out-btn').style.display = 'none';
+    document.getElementById('check-out-btn').disabled = true;
+}
     
     function enableUI() {
         document.getElementById('kakao-login-btn').disabled = false;
@@ -668,46 +675,68 @@ function forceRedirect(url) {
     }
     
     // ==================== 오늘 출결 상태 확인 ====================
-    async function checkTodayStatus() {
-        try {
-            const response = await fetchWithRetry(CONFIG.GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'getTodayStatus',
-                    kakaoId: currentUser.kakaoId
-                })
-            });
+    // ==================== 오늘 출결 상태 확인 ====================
+async function checkTodayStatus() {
+    try {
+        const response = await fetchWithRetry(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'getTodayStatus',
+                kakaoId: currentUser.kakaoId
+            })
+        });
+        
+        const result = await response.json();
+        showLoader(false);
+        
+        if (result.checkIn) {
+            // 🔥 출근함 - 시간 표시
+            document.getElementById('check-in-value').textContent = result.checkIn;
+            document.getElementById('check-in-time').style.display = 'block';
+            document.getElementById('time-display').style.display = 'block';
             
-            const result = await response.json();
-            showLoader(false);
+            // 출근 버튼 비활성화 + 숨기기
+            document.getElementById('check-in-btn').style.display = 'none';
+            document.getElementById('check-in-btn').disabled = true;
             
-            if (result.checkIn) {
-                // 출근함
-                document.getElementById('check-in-value').textContent = result.checkIn;
-                document.getElementById('check-in-time').style.display = 'block';
-                document.getElementById('time-display').style.display = 'block';
+            if (result.checkOut) {
+                // 🔥 퇴근도 함
+                document.getElementById('check-out-value').textContent = result.checkOut;
+                document.getElementById('check-out-time').style.display = 'block';
                 
-                if (result.checkOut) {
-                    // 퇴근도 함
-                    document.getElementById('check-out-value').textContent = result.checkOut;
-                    document.getElementById('check-out-time').style.display = 'block';
-                    updateStatus('completed');
-                } else {
-                    // 아직 퇴근 안함
-                    updateStatus('working');
-                    document.getElementById('check-out-btn').style.display = 'block';
-                }
+                // 퇴근 버튼도 비활성화 + 숨기기
+                document.getElementById('check-out-btn').style.display = 'none';
+                document.getElementById('check-out-btn').disabled = true;
+                
+                updateStatus('completed');
             } else {
-                // 아직 출근 안함
-                updateStatus('waiting');
-                document.getElementById('check-in-btn').style.display = 'block';
+                // 🔥 아직 퇴근 안함 - 퇴근 버튼만 활성화
+                document.getElementById('check-out-btn').style.display = 'block';
+                document.getElementById('check-out-btn').disabled = false;
+                updateStatus('working');
             }
+        } else {
+            // 🔥 아직 출근 안함
+            updateStatus('waiting');
             
-        } catch (error) {
-            showLoader(false);
-            showError('상태 확인 실패');
+            // 출근 버튼만 활성화
+            document.getElementById('check-in-btn').style.display = 'block';
+            document.getElementById('check-in-btn').disabled = false;
+            
+            // 퇴근 버튼은 비활성화 + 숨기기
+            document.getElementById('check-out-btn').style.display = 'none';
+            document.getElementById('check-out-btn').disabled = true;
         }
+        
+    } catch (error) {
+        showLoader(false);
+        showError('상태 확인 실패');
+        
+        // 에러시 모든 버튼 비활성화
+        document.getElementById('check-in-btn').disabled = true;
+        document.getElementById('check-out-btn').disabled = true;
     }
+}
     
     // ==================== 출근 처리 ====================
     async function doCheckIn() {
@@ -740,16 +769,16 @@ function forceRedirect(url) {
             currentUser.hospitalLon
         );
         
+        // 🔥 위치 정보 한 줄로 표시
         document.getElementById('location-status').innerHTML = 
-            `📍 병원과의 거리: ${Math.round(distance)}m<br>` +
-            `GPS 정확도: ${Math.round(position.coords.accuracy)}m`;
+            `📍 위치확인: ✅ 승인 | 거리: ${Math.round(distance)}m | GPS정확도: ${Math.round(position.coords.accuracy)}m`;
         
         const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 50);
         
         if (distance <= maxAllowedDistance) {
             // 위치 확인 성공
             document.getElementById('location-status').innerHTML = 
-                '✅ 위치 확인 완료! 출결 처리 중...';
+                `✅ 위치 인증 성공! ${type} 처리 중...`;
             
             const now = new Date();
             const timeString = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
@@ -771,37 +800,70 @@ function forceRedirect(url) {
             const result = await response.json();
             
             if (result.status === 'success') {
+                // 🔥 성공 메시지와 시간 표시
                 document.getElementById('location-status').innerHTML = 
-                    `✅ ${type} 완료!`;
+                    `✅ ${type} 완료! | 시간: ${timeString} | 위치: 승인됨`;
+                
+                // 🔥 바로 화면에 시간 업데이트 (새로고침 전에)
+                if (type === '출근') {
+                    document.getElementById('check-in-value').textContent = timeString;
+                    document.getElementById('check-in-time').style.display = 'block';
+                    document.getElementById('time-display').style.display = 'block';
+                    
+                    // 출근 버튼 숨기고 퇴근 버튼 표시
+                    document.getElementById('check-in-btn').style.display = 'none';
+                    document.getElementById('check-out-btn').style.display = 'block';
+                    document.getElementById('check-out-btn').disabled = false;
+                    
+                    updateStatus('working');
+                } else {
+                    document.getElementById('check-out-value').textContent = timeString;
+                    document.getElementById('check-out-time').style.display = 'block';
+                    
+                    // 퇴근 버튼도 숨기기
+                    document.getElementById('check-out-btn').style.display = 'none';
+                    
+                    updateStatus('completed');
+                }
+                
+                // 3초 후 새로고침
                 setTimeout(() => {
-                    // 🔥 여기가 문제! 수정:
-                    window.location.reload();  // location.reload() 대신
-                    // 또는 GitHub Pages 전체 경로:
-                    // window.location.href = 'https://knadlg1.github.io/sahanurse-attendance/';
-                }, 1500);
+                    window.location.reload();
+                }, 3000);
             } else {
                 throw new Error(result.message);
             }
             
         } else {
-            // 위치 확인 실패
-            alert(`⚠️ 위치 인증 실패\n\n병원과의 거리: ${Math.round(distance)}m\n허용 범위: ${Math.round(maxAllowedDistance)}m\n\n병원 내에서 다시 시도해주세요.`);
-            document.getElementById('location-status').style.display = 'none';
+            // 🔥 위치 확인 실패 - 한 줄로
+            document.getElementById('location-status').innerHTML = 
+                `❌ 위치 인증 실패 | 거리: ${Math.round(distance)}m (허용: ${Math.round(maxAllowedDistance)}m)`;
+            
+            alert(`⚠️ 병원 내에서 다시 시도해주세요.`);
+            
+            setTimeout(() => {
+                document.getElementById('location-status').style.display = 'none';
+            }, 5000);
+            
             document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = false;
         }
         
     } catch (error) {
-        document.getElementById('location-status').style.display = 'none';
+        document.getElementById('location-status').innerHTML = 
+            '❌ GPS 오류 - 위치 서비스를 켜주세요';
+        
+        setTimeout(() => {
+            document.getElementById('location-status').style.display = 'none';
+        }, 5000);
+        
         document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = false;
         
         if (error.code === 1) {
-            alert('📍 위치 권한 필요\n\n설정 방법:\n1. 아이폰 설정 앱\n2. Chrome 선택\n3. 위치 → "앱 사용 중" 선택');
+            alert('📍 위치 권한을 허용해주세요');
         } else if (error.code === 2) {
-            alert('📍 위치를 찾을 수 없습니다\n\n확인사항:\n1. GPS/위치서비스 켜기\n2. 와이파이 켜기\n3. 실외나 창가로 이동');
+            alert('📍 GPS를 켜주세요');
         } else if (error.code === 3) {
-            alert('📍 위치 확인 시간 초과\n\n해결방법:\n1. 실외로 이동\n2. 와이파이 켜기\n3. 다시 시도');
-        } else {
-            showError('처리 중 오류: ' + error.message);
+            alert('📍 실외나 창가로 이동해주세요');
         }
     }
 }
