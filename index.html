@@ -506,24 +506,29 @@ function handleSimpleKakaoLogin(code) {
     
     // ==================== 자정 리셋 ====================
     function checkMidnightReset() {
-        const checkTime = () => {
-            const now = new Date();
-            if (now.getHours() === 0 && now.getMinutes() === 0) {
-                const lastReset = localStorage.getItem('lastResetDate');
-                const today = now.toDateString();
+    const checkTime = () => {
+        const now = new Date();
+        if (now.getHours() === 0 && now.getMinutes() === 0) {
+            const lastReset = localStorage.getItem('lastResetDate');
+            const today = now.toDateString();
+            
+            if (lastReset !== today) {
+                localStorage.setItem('lastResetDate', today);
+                sessionStorage.clear();
                 
-                if (lastReset !== today) {
-                    localStorage.setItem('lastResetDate', today);
-                    sessionStorage.clear();
-                    alert('새로운 날이 시작되었습니다. 출결 정보가 초기화됩니다.');
-                    location.reload();
-                }
+                // 자정에 출결 정보와 메시지 초기화
+                localStorage.removeItem('todayAttendance');
+                document.getElementById('location-status').style.display = 'none';
+                
+                alert('새로운 날이 시작되었습니다. 출결 정보가 초기화됩니다.');
+                location.reload();
             }
-        };
-        
-        checkTime();
-        setInterval(checkTime, 60000); // 1분마다 체크
-    }
+        }
+    };
+    
+    checkTime();
+    setInterval(checkTime, 60000); // 1분마다 체크
+}
     
     // ==================== 카카오 로그인 ====================
   function loginWithKakao() {
@@ -914,39 +919,52 @@ async function checkTodayStatus() {
             const result = await response.json();
             
             if (result.status === 'success') {
-                // 🔥 성공 메시지와 시간 표시
-                document.getElementById('location-status').innerHTML = 
-                    `✅ ${type} 완료! | 시간: ${timeString} | 위치: 승인됨`;
-                
-                // 🔥 바로 화면에 시간 업데이트 (새로고침 전에)
-                if (type === '출근') {
-                    document.getElementById('check-in-value').textContent = timeString;
-                    document.getElementById('check-in-time').style.display = 'block';
-                    document.getElementById('time-display').style.display = 'block';
-                    
-                    // 출근 버튼 숨기고 퇴근 버튼 표시
-                    document.getElementById('check-in-btn').style.display = 'none';
-                    document.getElementById('check-out-btn').style.display = 'block';
-                    document.getElementById('check-out-btn').disabled = false;
-                    
-                    updateStatus('working');
-                } else {
-                    document.getElementById('check-out-value').textContent = timeString;
-                    document.getElementById('check-out-time').style.display = 'block';
-                    
-                    // 퇴근 버튼도 숨기기
-                    document.getElementById('check-out-btn').style.display = 'none';
-                    
-                    updateStatus('completed');
-                }
-                
-                // 3초 후 새로고침
-                setTimeout(() => {
-                    window.location.reload();
-                }, 3000);
-            } else {
-                throw new Error(result.message);
-            }
+    // 성공 메시지 유지
+    document.getElementById('location-status').innerHTML = 
+        `✅ ${type} 완료! | 시간: ${timeString} | 위치: 승인됨`;
+    
+    // localStorage에 오늘 출결 정보 저장
+    const today = new Date().toDateString();
+    const attendance = JSON.parse(localStorage.getItem('todayAttendance') || '{}');
+    
+    if (type === '출근') {
+        attendance.date = today;
+        attendance.checkIn = timeString;
+        
+        document.getElementById('check-in-value').textContent = timeString;
+        document.getElementById('check-in-time').style.display = 'block';
+        document.getElementById('time-display').style.display = 'block';
+        
+        // 출근 버튼 비활성화, 퇴근 버튼 활성화
+        document.getElementById('check-in-btn').style.display = 'block';
+        document.getElementById('check-in-btn').disabled = true;
+        document.getElementById('check-in-btn').style.opacity = '0.5';
+        
+        document.getElementById('check-out-btn').style.display = 'block';
+        document.getElementById('check-out-btn').disabled = false;
+        document.getElementById('check-out-btn').style.opacity = '1';
+        
+        updateStatus('working');
+    } else {
+        attendance.checkOut = timeString;
+        
+        document.getElementById('check-out-value').textContent = timeString;
+        document.getElementById('check-out-time').style.display = 'block';
+        
+        // 퇴근 버튼도 비활성화
+        document.getElementById('check-out-btn').style.display = 'block';
+        document.getElementById('check-out-btn').disabled = true;
+        document.getElementById('check-out-btn').style.opacity = '0.5';
+        
+        updateStatus('completed');
+    }
+    
+    localStorage.setItem('todayAttendance', JSON.stringify(attendance));
+    
+    // 새로고침 제거 - 이제 안 함!
+} else {
+    throw new Error(result.message);
+}
             
         } else {
             // 🔥 위치 확인 실패 - 한 줄로
