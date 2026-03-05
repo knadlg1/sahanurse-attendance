@@ -353,6 +353,8 @@
                 document.getElementById('location-status').style.display = 'block';
                 document.getElementById('location-status').innerHTML = 
                     `✅ 출근 완료! | 시간: ${attendance.checkIn} | 위치: 승인됨`;
+                document.getElementById('status-badge').className = 'status-badge status-working';
+document.getElementById('status-badge').textContent = '실습 중';
             }
             if (attendance.checkOut) {
                 document.getElementById('check-out-value').textContent = attendance.checkOut;
@@ -937,7 +939,9 @@ if (savedAttendance) {
         currentUser.hospitalLon = parsed.hospitalLon;
         currentUser.kakaoId = parsed.kakaoId;
     }
-    
+    if (!currentUser.kakaoId) {
+    currentUser.kakaoId = localStorage.getItem('realKakaoId') || localStorage.getItem('myKakaoId');
+}
     console.log('현재 병원 좌표:', currentUser.hospitalLat, currentUser.hospitalLon);
     
     if (!currentUser.hospitalLat || !currentUser.hospitalLon) {
