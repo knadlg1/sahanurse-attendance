@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>사하간호학원 출결시스템</title>
+    <title>사하제일간호학원 출결시스템</title>
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"></script>
     <style>
         * {
@@ -748,9 +748,12 @@ function forceRedirect(url) {
     }
 }
     
+
     // ==================== 오늘 출결 상태 확인 ====================
-    // ==================== 오늘 출결 상태 확인 ====================
+// ==================== 오늘 출결 상태 확인 ====================
 async function checkTodayStatus() {
+    console.log('출결 상태 확인 시작');
+    
     try {
         const response = await fetchWithRetry(CONFIG.GAS_URL, {
             method: 'POST',
@@ -761,53 +764,90 @@ async function checkTodayStatus() {
         });
         
         const result = await response.json();
+        console.log('서버 응답:', result);
+        
         showLoader(false);
         
-        if (result.checkIn) {
-            // 🔥 출근함 - 시간 표시
-            document.getElementById('check-in-value').textContent = result.checkIn;
-            document.getElementById('check-in-time').style.display = 'block';
-            document.getElementById('time-display').style.display = 'block';
-            
-            // 출근 버튼 비활성화 + 숨기기
-            document.getElementById('check-in-btn').style.display = 'none';
-            document.getElementById('check-in-btn').disabled = true;
-            
-            if (result.checkOut) {
-                // 🔥 퇴근도 함
-                document.getElementById('check-out-value').textContent = result.checkOut;
-                document.getElementById('check-out-time').style.display = 'block';
+        // Apps Script가 {status: 'success', checkIn: '', checkOut: ''} 형태로 보내는 경우
+        if (result.status === 'success') {
+            if (result.checkIn) {
+                // 출근 기록 있음
+                document.getElementById('check-in-value').textContent = result.checkIn;
+                document.getElementById('check-in-time').style.display = 'block';
+                document.getElementById('time-display').style.display = 'block';
+                document.getElementById('check-in-btn').style.display = 'none';
+                document.getElementById('check-in-btn').disabled = true;
                 
-                // 퇴근 버튼도 비활성화 + 숨기기
+                if (result.checkOut) {
+                    // 퇴근도 함
+                    document.getElementById('check-out-value').textContent = result.checkOut;
+                    document.getElementById('check-out-time').style.display = 'block';
+                    document.getElementById('check-out-btn').style.display = 'none';
+                    document.getElementById('check-out-btn').disabled = true;
+                    updateStatus('completed');
+                } else {
+                    // 퇴근 버튼 활성화
+                    document.getElementById('check-out-btn').style.display = 'block';
+                    document.getElementById('check-out-btn').disabled = false;
+                    updateStatus('working');
+                }
+            } else {
+                // 출근 버튼 활성화
+                updateStatus('waiting');
+                document.getElementById('check-in-btn').style.display = 'block';
+                document.getElementById('check-in-btn').disabled = false;
                 document.getElementById('check-out-btn').style.display = 'none';
                 document.getElementById('check-out-btn').disabled = true;
-                
-                updateStatus('completed');
-            } else {
-                // 🔥 아직 퇴근 안함 - 퇴근 버튼만 활성화
-                document.getElementById('check-out-btn').style.display = 'block';
-                document.getElementById('check-out-btn').disabled = false;
-                updateStatus('working');
             }
-        } else {
-            // 🔥 아직 출근 안함
+        } 
+        // 구버전 호환 (status 없이 바로 checkIn/checkOut)
+        else if (result.checkIn !== undefined || result.checkOut !== undefined) {
+            if (result.checkIn) {
+                document.getElementById('check-in-value').textContent = result.checkIn;
+                document.getElementById('check-in-time').style.display = 'block';
+                document.getElementById('time-display').style.display = 'block';
+                document.getElementById('check-in-btn').style.display = 'none';
+                document.getElementById('check-in-btn').disabled = true;
+                
+                if (result.checkOut) {
+                    document.getElementById('check-out-value').textContent = result.checkOut;
+                    document.getElementById('check-out-time').style.display = 'block';
+                    document.getElementById('check-out-btn').style.display = 'none';
+                    document.getElementById('check-out-btn').disabled = true;
+                    updateStatus('completed');
+                } else {
+                    document.getElementById('check-out-btn').style.display = 'block';
+                    document.getElementById('check-out-btn').disabled = false;
+                    updateStatus('working');
+                }
+            } else {
+                updateStatus('waiting');
+                document.getElementById('check-in-btn').style.display = 'block';
+                document.getElementById('check-in-btn').disabled = false;
+                document.getElementById('check-out-btn').style.display = 'none';
+                document.getElementById('check-out-btn').disabled = true;
+            }
+        }
+        // 에러나 예외 상황
+        else {
+            console.log('예상치 못한 응답:', result);
+            // 기본값으로 출근 버튼 보이기
             updateStatus('waiting');
-            
-            // 출근 버튼만 활성화
             document.getElementById('check-in-btn').style.display = 'block';
             document.getElementById('check-in-btn').disabled = false;
-            
-            // 퇴근 버튼은 비활성화 + 숨기기
             document.getElementById('check-out-btn').style.display = 'none';
             document.getElementById('check-out-btn').disabled = true;
         }
         
     } catch (error) {
+        console.error('상태 확인 오류:', error);
         showLoader(false);
-        showError('상태 확인 실패');
         
-        // 에러시 모든 버튼 비활성화
-        document.getElementById('check-in-btn').disabled = true;
+        // 오류 시 기본값으로 출근 버튼 보이기
+        updateStatus('waiting');
+        document.getElementById('check-in-btn').style.display = 'block';
+        document.getElementById('check-in-btn').disabled = false;
+        document.getElementById('check-out-btn').style.display = 'none';
         document.getElementById('check-out-btn').disabled = true;
     }
 }
