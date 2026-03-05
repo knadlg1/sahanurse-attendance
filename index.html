@@ -310,7 +310,7 @@
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbzEgPWJVE_AXAqsrIUzCrRM3ebWvhHHcFJsoqGe8FU0kIOixWp8A1hqbCNKlOxRMWyAZA/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbxJlIf-UjCjyDYjoNjBCWZdu7FH36XlSKRlGAaPwzoFrFqAjDpAWeipxGVLm2mXLUXaNQ/exec',
         SESSION_DURATION: 10 * 60 * 1000, // 10분
         MAX_DISTANCE: 300, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -332,34 +332,71 @@
     // ==================== 초기화 ====================
     Kakao.init(CONFIG.KAKAO_KEY);
     
-    window.onload = async function() {
+    // window.onload 함수 수정
+window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     
     if (code) {
         // 카카오에서 돌아온 경우
-        console.log('카카오 인증 코드 받음:', code);
         showLoader(true);
         
-        // 간단한 처리
-        handleSimpleKakaoLogin(code);
+        try {
+            // 🔥 Apps Script로 실제 카카오 ID 받기
+            const response = await fetch(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'getKakaoUser',
+                    code: code,
+                    redirect_uri: 'https://knadlg1.github.io/sahanurse-attendance/'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.kakaoId) {
+                // 🔥 실제 카카오 ID 받음!
+                console.log('실제 카카오 ID:', result.kakaoId);
+                
+                currentUser.kakaoId = result.kakaoId; // 이제 항상 같은 ID
+                sessionStorage.setItem('kakaoLoginComplete', 'true');
+                sessionStorage.setItem('currentKakaoId', result.kakaoId);
+                
+                // localStorage에도 저장 (영구 보관)
+                localStorage.setItem('realKakaoId', result.kakaoId);
+                
+                // URL 정리
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // 학생 확인
+                await verifyStudent();
+                
+            } else {
+                // 실패시 기존 방식 사용
+                handleSimpleKakaoLogin(code);
+            }
+            
+        } catch(e) {
+            console.error('카카오 ID 받기 실패:', e);
+            handleSimpleKakaoLogin(code);
+        }
         
     } else {
-        // 일반 접속
+        // 일반 접속 - 기존 코드
         initializeSession();
         checkMidnightReset();
         preventBackButton();
         
-        // 이미 로그인했었는지 확인
-        if (sessionStorage.getItem('kakaoLoginComplete') === 'true') {
-            currentUser.kakaoId = sessionStorage.getItem('currentKakaoId');
+        // 저장된 카카오 ID 확인
+        const savedKakaoId = localStorage.getItem('realKakaoId');
+        if (savedKakaoId) {
+            currentUser.kakaoId = savedKakaoId;
             const savedUser = sessionStorage.getItem('currentUser');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
                 showMainSection();
                 checkTodayStatus();
             } else {
-                // 저장된 유저 정보가 없으면 다시 확인
                 await verifyStudent();
             }
         }
