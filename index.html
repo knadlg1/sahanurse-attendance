@@ -337,47 +337,15 @@
     const code = urlParams.get('code');
     
     if (code) {
-        // 카카오 인증 코드 받음
-        document.getElementById('info-message').innerHTML = 
-            '<div style="color: green; font-weight: bold;">✅ 카카오 인증 완료! 정보 처리 중...</div>';
+        // 카카오에서 돌아온 경우
+        console.log('카카오 인증 코드 받음:', code);
         showLoader(true);
         
-        try {
-            // 서버에서 카카오 사용자 정보 가져오기
-            const response = await fetch(CONFIG.GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'getKakaoUser',
-                    code: code,
-                    redirect_uri: 'https://knadlg1.github.io/sahanurse-attendance/'
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.kakaoId) {
-                // 성공!
-                currentUser.kakaoId = result.kakaoId;
-                sessionStorage.setItem('kakaoLoginComplete', 'true');
-                sessionStorage.setItem('currentKakaoId', result.kakaoId);
-                
-                // URL에서 code 제거 (깔끔하게)
-                window.history.replaceState({}, document.title, '/here');
-                
-                // 학생 확인
-                await verifyStudent();
-            } else {
-                // 간단한 처리 (서버 없이)
-                handleSimpleKakaoLogin(code);
-            }
-            
-        } catch(e) {
-            // 에러시 간단한 처리
-            handleSimpleKakaoLogin(code);
-        }
+        // 간단한 처리
+        handleSimpleKakaoLogin(code);
         
     } else {
-        // 일반 초기화
+        // 일반 접속
         initializeSession();
         checkMidnightReset();
         preventBackButton();
@@ -390,11 +358,13 @@
                 currentUser = JSON.parse(savedUser);
                 showMainSection();
                 checkTodayStatus();
+            } else {
+                // 저장된 유저 정보가 없으면 다시 확인
+                await verifyStudent();
             }
         }
     }
 };
-
 // 간단한 카카오 로그인 처리
 function handleSimpleKakaoLogin(code) {
     const kakaoId = 'K_' + code.substring(0, 10);
