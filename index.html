@@ -651,6 +651,7 @@ function forceRedirect(url) {
             currentUser.hospitalLon = result.hospitalLon;
             
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             showLoader(false);
             showMainSection();
             checkTodayStatus();
@@ -908,13 +909,20 @@ if (savedAttendance) {
     const today = new Date().toDateString();
     
     if (attendance.date === today && attendance.checkIn) {
-        // 오늘 이미 출근함
-        document.getElementById('check-in-btn').style.display = 'block';
-        document.getElementById('check-in-btn').disabled = true;
-        document.getElementById('check-in-btn').style.opacity = '0.5';
-        document.getElementById('check-out-btn').style.display = 'block';
-        document.getElementById('check-out-btn').disabled = false;
+    // 오늘 이미 출근함
+    document.getElementById('check-in-btn').style.display = 'block';
+    document.getElementById('check-in-btn').disabled = true;
+    document.getElementById('check-in-btn').style.opacity = '0.5';
+    document.getElementById('check-out-btn').style.display = 'block';
+    document.getElementById('check-out-btn').disabled = false;
+    
+    // 상태도 업데이트!
+    if (attendance.checkOut) {
+        updateStatus('completed');
+    } else {
+        updateStatus('working');
     }
+}
   }
 }
     // ==================== 출근 처리 ====================
@@ -929,6 +937,19 @@ if (savedAttendance) {
     
     // ==================== 출결 처리 공통 ====================
     async function processAttendance(type) {
+    // currentUser 완전 복원
+    const savedUser = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+    }
+    
+    if (!currentUser.kakaoId) {
+        currentUser.kakaoId = localStorage.getItem('realKakaoId') || localStorage.getItem('myKakaoId');
+    }
+    
+    console.log('현재 유저 정보:', currentUser);
+    
+    // 이하 기존 코드...
     // currentUser 체크
     const savedUser = sessionStorage.getItem('currentUser');
     if (savedUser) {
