@@ -1019,13 +1019,12 @@ async function checkTodayStatus() {
     
     // ==================== UI 업데이트 ====================
     function showMainSection() {
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('main-section').style.display = 'block';
-        document.getElementById('user-name').textContent = currentUser.name;
-        document.getElementById('user-hospital').textContent = currentUser.hospital;
-        document.getElementById('info-message').textContent = 
-            `${currentUser.hospital} 실습 출결`;
-    }
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('main-section').style.display = 'block';
+    document.getElementById('user-name').textContent = currentUser.name;
+    document.getElementById('user-hospital').textContent = currentUser.hospital;
+    // info-message 줄 삭제함
+}
     
     function updateStatus(status) {
         const badge = document.getElementById('status-badge');
