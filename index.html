@@ -722,7 +722,7 @@ function forceRedirect(url) {
     }
     
     // 새로 입력
-    const name = prompt('이름을 입력하세요');
+    const name = prompt('이름을 입력하세요\n띄어쓰기or오타 주의!');
     if (!name) {
         location.reload();
         return;
@@ -974,7 +974,7 @@ if (savedAttendance) {
                 `✅ 위치 인증 성공! ${type} 처리 중...`;
             
             const now = new Date();
-            const timeString = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            const timeString = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
             
             const response = await fetchWithRetry(CONFIG.GAS_URL, {
                 method: 'POST',
