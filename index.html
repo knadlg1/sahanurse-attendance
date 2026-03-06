@@ -313,7 +313,7 @@
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbyErt9dlD7yPhiGw9pv97begVA6gUce7kOOOBDKYTOYs2BFlAp5SvkgPK2XQe1S4oyI/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbwIcGEdvEtFnBKRg5ekXOcUldTq7DorCBhY8dKuIEFZ3pNAtjLmhFELnWA6kQIBmENg2Q/exec',
         SESSION_DURATION: 10 * 60 * 1000, // 10분
         MAX_DISTANCE: 50, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -707,6 +707,7 @@ function forceRedirect(url) {
             
             if (result.status === 'success') {
                 currentUser.name = result.name;
+                currentUser.phone = result.phone;  // 전화번호 추가!
                 currentUser.hospital = result.hospital;
                 currentUser.hospitalLat = result.hospitalLat;
                 currentUser.hospitalLon = result.hospitalLon;
@@ -756,6 +757,7 @@ function forceRedirect(url) {
         
         if (result.status === 'success') {
             currentUser.name = result.name;
+            currentUser.phone = result.phone;  // 전화번호 추가!
             currentUser.hospital = result.hospital;
             currentUser.hospitalLat = result.hospitalLat || 35.0817;  // 기본값
             currentUser.hospitalLon = result.hospitalLon || 128.9883; // 기본값
