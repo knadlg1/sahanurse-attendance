@@ -972,9 +972,13 @@ if (savedAttendance) {
             // 위치 확인 성공
             document.getElementById('location-status').innerHTML = 
                 `✅ 위치 인증 성공! ${type} 처리 중...`;
-            
+
             const now = new Date();
-            const timeString = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            const year = String(now.getFullYear()).slice(-2);
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const timeString = `${year}.${month}.${day} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            
             
             const response = await fetchWithRetry(CONFIG.GAS_URL, {
                 method: 'POST',
