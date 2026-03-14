@@ -973,11 +973,16 @@ if (savedAttendance) {
             document.getElementById('location-status').innerHTML = 
                 `✅ 위치 인증 성공! ${type} 처리 중...`;
 
+           
             const now = new Date();
             const year = String(now.getFullYear()).slice(-2);
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
-            const timeString = `${year}.${month}.${day} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            const hms = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+
+            const displayTime = `${year}.${month}.${day} ${hms}`; // UI 및 휴대폰 저장용 (년.월.일 포함)
+            const sheetTime = hms; // 스프레드시트 전송용 (시간만)
+            
             
             
             const response = await fetchWithRetry(CONFIG.GAS_URL, {
@@ -989,7 +994,7 @@ if (savedAttendance) {
                     name: currentUser.name,
                     phone: currentUser.phone || "",  // 전화번호 추가
                     hospital: currentUser.hospital,
-                    time: timeString,
+                    time: sheetTime,
                     accuracy: Math.round(position.coords.accuracy),
                     distance: Math.round(distance)
                 })
@@ -1000,7 +1005,7 @@ if (savedAttendance) {
             if (result.status === 'success') {
     // 성공 메시지 유지
     document.getElementById('location-status').innerHTML = 
-        `✅ ${type} 완료! | 시간: ${timeString} | 위치: 승인됨`;
+        `✅ ${type} 완료! | 시간: ${displayTime} | 위치: 승인됨`;
     
     // localStorage에 오늘 출결 정보 저장
     const today = new Date().toDateString();
@@ -1008,9 +1013,9 @@ if (savedAttendance) {
     
     if (type === '출근') {
         attendance.date = today;
-        attendance.checkIn = timeString;
+        attendance.checkIn = displayTime;
         
-        document.getElementById('check-in-value').textContent = timeString;
+        document.getElementById('check-in-value').textContent = displayTime;
         document.getElementById('check-in-time').style.display = 'block';
         document.getElementById('time-display').style.display = 'block';
         
@@ -1025,9 +1030,9 @@ if (savedAttendance) {
         
         updateStatus('working');
     } else {
-        attendance.checkOut = timeString;
+        attendance.checkOut = displayTime;
         
-        document.getElementById('check-out-value').textContent = timeString;
+        document.getElementById('check-out-value').textContent = displayTime;
         document.getElementById('check-out-time').style.display = 'block';
         
         // 퇴근 버튼도 비활성화
