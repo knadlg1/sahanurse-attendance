@@ -337,12 +337,19 @@
     
     // window.onload 함수 수정
 
-    window.onload = async function() {
+       window.onload = async function() {
     // 저장된 출결 정보 먼저 복원
     const savedAttendance = localStorage.getItem('todayAttendance');
+    const today = new Date().toDateString();
+    
     if (savedAttendance) {
-        const attendance = JSON.parse(savedAttendance);
-        const today = new Date().toDateString();
+        let attendance = JSON.parse(savedAttendance);
+        
+        // 🔥 핵심: 저장된 날짜가 오늘이 아니면 과거 데이터이므로 완전 삭제!
+        if (attendance.date !== today) {
+            localStorage.removeItem('todayAttendance');
+            attendance = {}; // 비워버림
+        }
         
         if (attendance.date === today) {
             // 오늘 출근 기록이 있으면 표시
@@ -1017,13 +1024,17 @@ if (savedAttendance) {
     document.getElementById('location-status').innerHTML = 
         `✅ ${type} 완료! | 시간: ${displayTime} | 위치: 승인됨`;
     
-    // localStorage에 오늘 출결 정보 저장
+        // localStorage에 오늘 출결 정보 저장
     const today = new Date().toDateString();
-    const attendance = JSON.parse(localStorage.getItem('todayAttendance') || '{}');
+    // 🔥 const를 let으로 바꿔줍니다
+    let attendance = JSON.parse(localStorage.getItem('todayAttendance') || '{}');
     
     if (type === '출근') {
-        attendance.date = today;
-        attendance.checkIn = displayTime;
+        // 🔥 핵심: 출근할 때는 과거의 퇴근 기록이 섞이지 않게 아예 새 덩어리로 만듭니다!
+        attendance = {
+            date: today,
+            checkIn: displayTime
+        };
         
         document.getElementById('check-in-value').textContent = displayTime;
         document.getElementById('check-in-time').style.display = 'block';
