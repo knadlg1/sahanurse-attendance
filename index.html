@@ -352,7 +352,7 @@
                 document.getElementById('time-display').style.display = 'block';
                 document.getElementById('location-status').style.display = 'block';
                 document.getElementById('location-status').innerHTML = 
-                    `✅ 출근 완료! | 시간: ${attendance.checkIn} | 위치: 승인됨`;
+                    `✅ 출근: ${attendance.checkIn} | 위치:승인`;
                 document.getElementById('status-badge').className = 'status-badge status-working';
 document.getElementById('status-badge').textContent = '실습 중';
             }
@@ -360,7 +360,7 @@ document.getElementById('status-badge').textContent = '실습 중';
                 document.getElementById('check-out-value').textContent = attendance.checkOut;
                 document.getElementById('check-out-time').style.display = 'block';
                 document.getElementById('location-status').innerHTML = 
-                    `✅ 퇴근 완료! | 시간: ${attendance.checkOut} | 위치: 승인됨`;
+                    `✅ 퇴근: ${attendance.checkOut} | 위치:승인`;
             }
         }
     }
