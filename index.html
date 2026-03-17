@@ -249,7 +249,7 @@
 <body>
 
 <div class="timer-display" id="timer-display">
-    ⏱ 남은 시간: <span id="timer-text">10:00</span>
+    ⏱ 남은 시간: <span id="timer-text">05:00</span>
 </div>
 
 <div class="container">
@@ -258,9 +258,9 @@
         <p class="subtitle">실습 출결 관리 시스템</p>
         
         <div class="warning-box" id="session-expired">
-            ⚠️ 세션이 만료되었습니다<br>
-            QR코드를 다시 스캔해주세요
-        </div>
+            ⚠️ 세션(5분) 만료<br>
+    페이지 새로고침 필요!
+</div>
    
         
         <!-- 로그인 전 화면 -->
@@ -269,7 +269,7 @@
                 카카오톡으로 시작하기
             </button>
             <p style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 10px;">
-                ※ 병원 QR코드를 먼저 스캔하셨나요?
+                ※ 휴대폰 변경 시 학원으로 연락!
             </p>
         </div>
         
@@ -284,11 +284,11 @@
                 <div id="status-badge" class="status-badge status-waiting">대기 중</div>
                 <div class="time-display" id="time-display" style="display: none;">
                     <div class="time-row" id="check-in-time" style="display: none;">
-                        <span class="time-label">출근 시간</span>
+                        <span class="time-label">출근</span>
                         <span class="time-value" id="check-in-value">-</span>
                     </div>
                     <div class="time-row" id="check-out-time" style="display: none;">
-                        <span class="time-label">퇴근 시간</span>
+                        <span class="time-label">퇴근</span>
                         <span class="time-value" id="check-out-value">-</span>
                     </div>
                 </div>
@@ -314,7 +314,7 @@
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
         GAS_URL: 'https://script.google.com/macros/s/AKfycbxu1tSUJcbHZ4EUwf5p6PG6KyStw1osL6I6l_AHfg-i93OZ8Wed8UqeMHE5jG1Q6l1y/exec',
-        SESSION_DURATION: 10 * 60 * 1000, // 10분
+        SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 100, // 미터
         GPS_TIMEOUT: 20000, // 20초
         GPS_MAX_AGE: 0
@@ -337,50 +337,13 @@
     
     // window.onload 함수 수정
 
-       window.onload = async function() {
-    // 저장된 출결 정보 먼저 복원
-    const savedAttendance = localStorage.getItem('todayAttendance');
-    const today = new Date().toDateString();
-    
-    if (savedAttendance) {
-        let attendance = JSON.parse(savedAttendance);
-        
-        // 🔥 핵심: 저장된 날짜가 오늘이 아니면 과거 데이터이므로 완전 삭제!
-        if (attendance.date !== today) {
-            localStorage.removeItem('todayAttendance');
-            attendance = {}; // 비워버림
-        }
-        
-        if (attendance.date === today) {
-            // 오늘 출근 기록이 있으면 표시
-            if (attendance.checkIn) {
-                document.getElementById('check-in-value').textContent = attendance.checkIn;
-                document.getElementById('check-in-time').style.display = 'block';
-                document.getElementById('time-display').style.display = 'block';
-                document.getElementById('location-status').style.display = 'block';
-                document.getElementById('location-status').innerHTML = 
-                    `✅ 출근: ${attendance.checkIn} | 위치:승인`;
-                document.getElementById('status-badge').className = 'status-badge status-working';
-document.getElementById('status-badge').textContent = '실습 중';
-            }
-            if (attendance.checkOut) {
-                document.getElementById('check-out-value').textContent = attendance.checkOut;
-                document.getElementById('check-out-time').style.display = 'block';
-                document.getElementById('location-status').innerHTML = 
-                    `✅ 퇴근: ${attendance.checkOut} | 위치:승인`;
-            }
-        }
-    }
-    
-    // 이하 기존 코드...
+      window.onload = async function() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     
-        if (code) {
+    if (code) {
         // 카카오에서 돌아온 경우
         showLoader(true);
-        
-        // URL 먼저 정리 (code 재사용 방지)
         window.history.replaceState({}, document.title, window.location.pathname);
         
         try {
@@ -397,75 +360,62 @@ document.getElementById('status-badge').textContent = '실습 중';
             const result = await response.json();
             
             if (result.kakaoId) {
-                console.log('실제 카카오 ID:', result.kakaoId);
-                
                 currentUser.kakaoId = result.kakaoId;
                 sessionStorage.setItem('kakaoLoginComplete', 'true');
-                sessionStorage.setItem('currentKakaoId', result.kakaoId);
                 localStorage.setItem('realKakaoId', result.kakaoId);
                 
                 initializeSession();
                 await verifyStudent();
-                
             } else {
-                console.error('카카오 ID 받기 실패:', result);
                 showLoader(false);
-                
-                // 이전에 저장된 카카오 ID가 있으면 그걸 사용
                 const savedKakaoId = localStorage.getItem('realKakaoId');
                 if (savedKakaoId) {
-                    console.log('저장된 카카오 ID 사용:', savedKakaoId);
                     currentUser.kakaoId = savedKakaoId;
                     initializeSession();
                     await verifyStudent();
                 } else {
-                    alert('카카오 로그인에 실패했습니다.\n다시 시도해주세요.');
+                    alert('카카오 로그인 실패.\n다시 시도해주세요.');
                     initializeSession();
                 }
             }
-            
         } catch(e) {
-            console.error('카카오 ID 받기 실패:', e);
             showLoader(false);
-            
-            // 이전에 저장된 카카오 ID가 있으면 그걸 사용
             const savedKakaoId = localStorage.getItem('realKakaoId');
             if (savedKakaoId) {
-                console.log('저장된 카카오 ID 사용:', savedKakaoId);
                 currentUser.kakaoId = savedKakaoId;
                 initializeSession();
                 await verifyStudent();
             } else {
-                alert('카카오 로그인에 실패했습니다.\n다시 시도해주세요.');
+                alert('서버 연결 실패.\n다시 시도해주세요.');
                 initializeSession();
             }
         }
-        
-        } else {
+    } else {
         // 일반 접속
         initializeSession();
         checkMidnightReset();
         preventBackButton();
         
-        // 저장된 카카오 ID 확인
         const savedKakaoId = localStorage.getItem('realKakaoId');
         if (savedKakaoId) {
             currentUser.kakaoId = savedKakaoId;
-            const savedUser = localStorage.getItem('currentUser');
+            const savedUser = sessionStorage.getItem('currentUser');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
                 showMainSection();
-                checkTodayStatus();
+                // 🔥 이제 접속하면 무조건 서버(스프레드시트)에 출결 상태를 물어봅니다!
+                checkTodayStatus(); 
             } else {
                 await verifyStudent();
             }
         }
     }
 };
+    
 // 간단한 카카오 로그인 처리
 function handleSimpleKakaoLogin(code) {
     showLoader(false);
-    alert('카카오 로그인에 실패했습니다.\n다시 시도해주세요.');
+    alert('카카오 로그인 실패.\n다시 시도해주세요.');
     
     window.history.replaceState({}, document.title, window.location.pathname);
     
@@ -474,17 +424,17 @@ function handleSimpleKakaoLogin(code) {
     
     // ==================== 세션 관리 ====================
     function initializeSession() {
-        const qrScanTime = sessionStorage.getItem('qrScanTime');
-        const now = Date.now();
-        
-        if (!qrScanTime) {
-            // 처음 접속 - QR 스캔으로 간주
-            sessionStorage.setItem('qrScanTime', now.toString());
+    const sessionStartTime = sessionStorage.getItem('sessionStartTime');
+    const now = Date.now();
+    
+    if (!sessionStartTime) {
+        // 처음 접속 시 바로 타이머 시작
+        sessionStorage.setItem('sessionStartTime', now.toString());
             startSessionTimer();
             enableUI();
         } else {
             // 재접속 - 시간 체크
-            const elapsed = now - parseInt(qrScanTime);
+            const elapsed = now - parseInt(sessionStartTime);
             if (elapsed < CONFIG.SESSION_DURATION) {
                 // 아직 유효함
                 remainingTime = CONFIG.SESSION_DURATION - elapsed;
@@ -534,7 +484,7 @@ function handleSimpleKakaoLogin(code) {
     
     document.getElementById('session-expired').style.display = 'block';
     document.getElementById('kakao-login-btn').disabled = true;
-    document.getElementById('kakao-login-btn').textContent = 'QR 재스캔 필요';
+    document.getElementById('kakao-login-btn').textContent = '새로고침 필요';
     document.getElementById('timer-display').style.display = 'none';
     
     // 🔥 모든 버튼 비활성화 + 숨기기
@@ -569,7 +519,7 @@ function handleSimpleKakaoLogin(code) {
                 localStorage.removeItem('todayAttendance');
                 document.getElementById('location-status').style.display = 'none';
                 
-                alert('새로운 날이 시작되었습니다. 출결 정보가 초기화됩니다.');
+                alert('00:00시, 출결 정보가 초기화됩니다.');
                 location.reload();
             }
         }
@@ -582,7 +532,7 @@ function handleSimpleKakaoLogin(code) {
     // ==================== 카카오 로그인 ====================
   function loginWithKakao() {
     if (remainingTime <= 0) {
-        alert('세션이 만료되었습니다. QR을 다시 스캔해주세요.');
+        alert('세션 만료. 새로고침 해주세요.');
         return;
     }
     
@@ -610,7 +560,7 @@ function handleSimpleKakaoLogin(code) {
 function showDirectButton(url) {
     document.getElementById('login-section').innerHTML = `
         <div style="padding: 20px; background: #FEE500; border-radius: 12px;">
-            <h3>카카오 로그인이 필요합니다</h3>
+            <h3>카카오 로그인 필요</h3>
             <button 
                 onclick="forceRedirect('${url}')"
                 style="
@@ -625,7 +575,7 @@ function showDirectButton(url) {
                     margin-top: 10px;
                 "
             >
-                👉 여기를 클릭해서 로그인
+                👉 여기를 클릭, 로그인
             </button>
         </div>
     `;
@@ -681,7 +631,7 @@ function forceRedirect(url) {
             
                 } else if (result.status === 'device_mismatch') {
             showLoader(false);
-            alert('등록된 기기 아님.\n본인 휴대폰으로 접속하기.\n\n기기 변경시 학원에 문의.');
+            alert('등록된 기기 아님.\n본인 휴대폰으로 접속하기.\n\n기기 변경시 학원문의.');
             
         } else {
             showLoader(false);
@@ -739,13 +689,13 @@ function forceRedirect(url) {
     }
     
     // 새로 입력
-    const name = prompt('이름을 입력하세요\n띄어쓰기or오타 주의!');
+    const name = prompt('이름을 입력하세요\n띄어쓰기,오타 주의!');
     if (!name) {
         location.reload();
         return;
     }
     
-    const phone = prompt('전화번호를 입력하세요\n(예:010-1234-5678)');
+    const phone = prompt('전화번호 입력하세요\n(예:01012345678)');
     if (!phone) {
         location.reload();
         return;
@@ -793,7 +743,7 @@ function forceRedirect(url) {
             
         } else {
             showLoader(false);
-            alert('❌ 등록 실패\n\n가능한 원인:\n1. 이름/전화번호가 명단과 일치하지 않음\n2. 이미 다른 기기에 등록됨\n\n학원에 문의하세요.');
+            alert('❌ 등록 실패\n\n가능한 원인:\n1. 이름/전화번호가 명단과 일치하지 않음\n2. 이미 다른 기기에 등록됨\n\n학원문의.');
             
             // 저장된 정보 삭제
             localStorage.removeItem('registeredUser');
@@ -802,26 +752,21 @@ function forceRedirect(url) {
     } catch (error) {
         console.error('등록 오류:', error);
         showLoader(false);
-        alert('서버 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.');
+        alert('서버 오류 발생.\n잠시 후 다시 시도.');
     }
 }
     
 
     // ==================== 오늘 출결 상태 확인 ====================
 // ==================== 오늘 출결 상태 확인 ====================
+// ==================== 오늘 출결 상태 확인 ====================
 async function checkTodayStatus() {
-    console.log('출결 상태 확인 시작');
+    console.log('출결 상태 확인 시작 (서버 데이터만 사용)');
 
-    // currentUser 복원 체크
     const savedUser = sessionStorage.getItem('currentUser');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        console.log('복원된 유저 정보:', currentUser);
-    }
+    if (savedUser) currentUser = JSON.parse(savedUser);
     
-    // 병원 좌표 없으면 다시 가져오기
     if (!currentUser.hospitalLat || !currentUser.hospitalLon) {
-        console.log('병원 좌표 없음, 다시 확인');
         await verifyStudent();
     }
     
@@ -835,116 +780,68 @@ async function checkTodayStatus() {
         });
         
         const result = await response.json();
-        console.log('서버 응답:', result);
-        
+        console.log('서버에서 가져온 오늘 데이터:', result);
         showLoader(false);
         
-        // Apps Script가 {status: 'success', checkIn: '', checkOut: ''} 형태로 보내는 경우
-        if (result.status === 'success') {
-            if (result.checkIn) {
-                // 출근 기록 있음
-                document.getElementById('check-in-value').textContent = result.checkIn;
-                document.getElementById('check-in-time').style.display = 'block';
-                document.getElementById('time-display').style.display = 'block';
-                document.getElementById('check-in-btn').style.display = 'none';
-                document.getElementById('check-in-btn').disabled = true;
-                
-                if (result.checkOut) {
-                    // 퇴근도 함
-                    document.getElementById('check-out-value').textContent = result.checkOut;
-                    document.getElementById('check-out-time').style.display = 'block';
-                    document.getElementById('check-out-btn').style.display = 'none';
-                    document.getElementById('check-out-btn').disabled = true;
-                    updateStatus('completed');
-                } else {
-                    // 퇴근 버튼 활성화
-                    document.getElementById('check-out-btn').style.display = 'block';
-                    document.getElementById('check-out-btn').disabled = false;
-                    updateStatus('working');
-                }
-            } else {
-                // 출근 버튼 활성화
-                updateStatus('waiting');
-                document.getElementById('check-in-btn').style.display = 'block';
-                document.getElementById('check-in-btn').disabled = false;
-                document.getElementById('check-out-btn').style.display = 'none';
-                document.getElementById('check-out-btn').disabled = true;
-            }
-        } 
-        // 구버전 호환 (status 없이 바로 checkIn/checkOut)
-        else if (result.checkIn !== undefined || result.checkOut !== undefined) {
-            if (result.checkIn) {
-                document.getElementById('check-in-value').textContent = result.checkIn;
-                document.getElementById('check-in-time').style.display = 'block';
-                document.getElementById('time-display').style.display = 'block';
-                document.getElementById('check-in-btn').style.display = 'none';
-                document.getElementById('check-in-btn').disabled = true;
-                
-                if (result.checkOut) {
-                    document.getElementById('check-out-value').textContent = result.checkOut;
-                    document.getElementById('check-out-time').style.display = 'block';
-                    document.getElementById('check-out-btn').style.display = 'none';
-                    document.getElementById('check-out-btn').disabled = true;
-                    updateStatus('completed');
-                } else {
-                    document.getElementById('check-out-btn').style.display = 'block';
-                    document.getElementById('check-out-btn').disabled = false;
-                    updateStatus('working');
-                }
-            } else {
-                updateStatus('waiting');
-                document.getElementById('check-in-btn').style.display = 'block';
-                document.getElementById('check-in-btn').disabled = false;
-                document.getElementById('check-out-btn').style.display = 'none';
-                document.getElementById('check-out-btn').disabled = true;
-            }
-        }
-        // 에러나 예외 상황
-        else {
-            console.log('예상치 못한 응답:', result);
-            // 기본값으로 출근 버튼 보이기
-            updateStatus('waiting');
-            document.getElementById('check-in-btn').style.display = 'block';
-            document.getElementById('check-in-btn').disabled = false;
-            document.getElementById('check-out-btn').style.display = 'none';
-            document.getElementById('check-out-btn').disabled = true;
-        }
+        const checkInBtn = document.getElementById('check-in-btn');
+        const checkOutBtn = document.getElementById('check-out-btn');
         
+        if (result.status === 'success' || result.checkIn !== undefined) {
+            if (result.checkIn && result.checkIn !== "") {
+                // ✅ 1. 출근 기록이 있을 때
+                document.getElementById('check-in-value').textContent = result.checkIn;
+                document.getElementById('check-in-time').style.display = 'block';
+                document.getElementById('time-display').style.display = 'block';
+                
+                // 출근 버튼 완벽 차단 및 텍스트 변경
+                checkInBtn.style.display = 'block';
+                checkInBtn.disabled = true;
+                checkInBtn.style.opacity = '0.5';
+                checkInBtn.textContent = '출근 완료'; 
+                
+                if (result.checkOut && result.checkOut !== "") {
+                    // ✅ 2. 퇴근 기록까지 있을 때 (완전 종료)
+                    document.getElementById('check-out-value').textContent = result.checkOut;
+                    document.getElementById('check-out-time').style.display = 'block';
+                    
+                    // 퇴근 버튼 완벽 차단 및 텍스트 변경
+                    checkOutBtn.style.display = 'block';
+                    checkOutBtn.disabled = true;
+                    checkOutBtn.style.opacity = '0.5';
+                    checkOutBtn.textContent = '퇴근 완료';
+                    
+                    updateStatus('completed');
+                } else {
+                    // ✅ 3. 출근만 하고 퇴근 전일 때 (퇴근 버튼 활성화)
+                    checkOutBtn.style.display = 'block';
+                    checkOutBtn.disabled = false;
+                    checkOutBtn.style.opacity = '1';
+                    checkOutBtn.textContent = '퇴근하기';
+                    updateStatus('working');
+                }
+            } else {
+                // ✅ 4. 출근 기록 자체가 없을 때 (초기 상태)
+                checkInBtn.style.display = 'block';
+                checkInBtn.disabled = false;
+                checkInBtn.style.opacity = '1';
+                checkInBtn.textContent = '출근하기';
+                
+                checkOutBtn.style.display = 'none';
+                checkOutBtn.disabled = true;
+                updateStatus('waiting');
+            }
+        }
     } catch (error) {
         console.error('상태 확인 오류:', error);
         showLoader(false);
-        
-        // 오류 시 기본값으로 출근 버튼 보이기
         updateStatus('waiting');
         document.getElementById('check-in-btn').style.display = 'block';
         document.getElementById('check-in-btn').disabled = false;
         document.getElementById('check-out-btn').style.display = 'none';
-        document.getElementById('check-out-btn').disabled = true;
     }
+}
 
-    // localStorage에서 오늘 출근 기록 확인
-const savedAttendance = localStorage.getItem('todayAttendance');
-if (savedAttendance) {
-    const attendance = JSON.parse(savedAttendance);
-    const today = new Date().toDateString();
-    
-    if (attendance.date === today && attendance.checkIn) {
-    // 오늘 이미 출근함
-    document.getElementById('check-in-btn').style.display = 'block';
-    document.getElementById('check-in-btn').disabled = true;
-    document.getElementById('check-in-btn').style.opacity = '0.5';
-    document.getElementById('check-out-btn').style.display = 'block';
-    document.getElementById('check-out-btn').disabled = false;
-    
-    // 상태도 업데이트!
-    if (attendance.checkOut) {
-        updateStatus('completed');
-    } else {
-        updateStatus('working');
-    }
-}
-  }
-}
+
     // ==================== 출근 처리 ====================
     async function doCheckIn() {
         await processAttendance('출근');
@@ -956,51 +853,45 @@ if (savedAttendance) {
     }
     
     // ==================== 출결 처리 공통 ====================
-    async function processAttendance(type) {
-    // 무조건 서버에서 최신 정보 가져오기 (출근이든 퇴근이든)
+    // ==================== 출결 처리 공통 ====================
+async function processAttendance(type) {
     await verifyStudent();
     
     if (remainingTime <= 0) {
-        alert('세션이 만료되었습니다. QR을 다시 스캔해주세요.');
+        alert('세션 만료. 새로고침 해주세요.');
         return;
     }
     
-    document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = true;
+    // 버튼 두 번 연속 클릭 방지
+    const btnId = `check-${type === '출근' ? 'in' : 'out'}-btn`;
+    document.getElementById(btnId).disabled = true;
+    
     document.getElementById('location-status').style.display = 'block';
-    document.getElementById('location-status').innerHTML = 
-        '📍 위치 확인 중...<br><small>GPS 권한을 허용해주세요</small>';
+    document.getElementById('location-status').innerHTML = '📍 위치 확인 중...<br><small>GPS 권한 허용해주세요</small>';
     
     try {
         const position = await getCurrentPosition();
         const distance = calculateDistance(
-            position.coords.latitude,
-            position.coords.longitude,
-            currentUser.hospitalLat,
-            currentUser.hospitalLon
+            position.coords.latitude, position.coords.longitude,
+            currentUser.hospitalLat, currentUser.hospitalLon
         );
         
-        // 🔥 위치 정보 한 줄로 표시
         document.getElementById('location-status').innerHTML = 
-            `📍 위치확인: ✅ 승인 | 거리: ${Math.round(distance)}m | GPS정확도: ${Math.round(position.coords.accuracy)}m`;
+            `📍위치: ✅승인 | 거리: ${Math.round(distance)}m | GPS정확도: ${Math.round(position.coords.accuracy)}m`;
         
         const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 50);
         
         if (distance <= maxAllowedDistance) {
-            // 위치 확인 성공
-            document.getElementById('location-status').innerHTML = 
-                `✅ 위치 인증 성공! ${type} 처리 중...`;
+            document.getElementById('location-status').innerHTML = `✅ 위치인증 성공! ${type} 처리 중...`;
 
-           
             const now = new Date();
             const year = String(now.getFullYear()).slice(-2);
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const hms = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-
-            const displayTime = `${year}.${month}.${day} ${hms}`; // UI 및 휴대폰 저장용 (년.월.일 포함)
-            const sheetTime = hms; // 스프레드시트 전송용 (시간만)
             
-            
+            const displayTime = `${year}.${month}.${day} ${hms}`;
+            const sheetTime = hms;
             
             const response = await fetchWithRetry(CONFIG.GAS_URL, {
                 method: 'POST',
@@ -1009,7 +900,7 @@ if (savedAttendance) {
                     type: type,
                     kakaoId: currentUser.kakaoId,
                     name: currentUser.name,
-                    phone: currentUser.phone || "",  // 전화번호 추가
+                    phone: currentUser.phone || "",
                     hospital: currentUser.hospital,
                     time: sheetTime,
                     accuracy: Math.round(position.coords.accuracy),
@@ -1020,97 +911,63 @@ if (savedAttendance) {
             const result = await response.json();
             
             if (result.status === 'success') {
-    // 성공 메시지 유지
-    document.getElementById('location-status').innerHTML = 
-        `✅ ${type} 완료! | 시간: ${displayTime} | 위치: 승인됨`;
-    
-        // localStorage에 오늘 출결 정보 저장
-    const today = new Date().toDateString();
-    // 🔥 const를 let으로 바꿔줍니다
-    let attendance = JSON.parse(localStorage.getItem('todayAttendance') || '{}');
-    
-    if (type === '출근') {
-        // 🔥 핵심: 출근할 때는 과거의 퇴근 기록이 섞이지 않게 아예 새 덩어리로 만듭니다!
-        attendance = {
-            date: today,
-            checkIn: displayTime
-        };
-        
-        document.getElementById('check-in-value').textContent = displayTime;
-        document.getElementById('check-in-time').style.display = 'block';
-        document.getElementById('time-display').style.display = 'block';
-        
-        // 출근 버튼 비활성화, 퇴근 버튼 활성화
-        document.getElementById('check-in-btn').style.display = 'block';
-        document.getElementById('check-in-btn').disabled = true;
-        document.getElementById('check-in-btn').style.opacity = '0.5';
-        
-        document.getElementById('check-out-btn').style.display = 'block';
-        document.getElementById('check-out-btn').disabled = false;
-        document.getElementById('check-out-btn').style.opacity = '1';
-        
-        updateStatus('working');
-    } else {
-        attendance.checkOut = displayTime;
-        
-        document.getElementById('check-out-value').textContent = displayTime;
-        document.getElementById('check-out-time').style.display = 'block';
-        
-        // 퇴근 버튼도 비활성화
-        document.getElementById('check-out-btn').style.display = 'block';
-        document.getElementById('check-out-btn').disabled = true;
-        document.getElementById('check-out-btn').style.opacity = '0.5';
-        
-        updateStatus('completed');
-    }
-    
-    localStorage.setItem('todayAttendance', JSON.stringify(attendance));
-    
-    // 새로고침 제거 - 이제 안 함!
-} else {
-    throw new Error(result.message);
-}
-            
+                document.getElementById('location-status').innerHTML = `✅ ${type} 완료! | 시간: ${displayTime} | 위치:승인`;
+                
+                const checkInBtn = document.getElementById('check-in-btn');
+                const checkOutBtn = document.getElementById('check-out-btn');
+                
+                // 화면 즉시 업데이트
+                if (type === '출근') {
+                    document.getElementById('check-in-value').textContent = displayTime;
+                    document.getElementById('check-in-time').style.display = 'block';
+                    document.getElementById('time-display').style.display = 'block';
+                    
+                    // 출근 버튼 잠금
+                    checkInBtn.disabled = true;
+                    checkInBtn.style.opacity = '0.5';
+                    checkInBtn.textContent = '출근 완료';
+                    
+                    // 퇴근 버튼 열기
+                    checkOutBtn.style.display = 'block';
+                    checkOutBtn.disabled = false;
+                    checkOutBtn.style.opacity = '1';
+                    checkOutBtn.textContent = '퇴근하기';
+                    
+                    updateStatus('working');
+                } else {
+                    document.getElementById('check-out-value').textContent = displayTime;
+                    document.getElementById('check-out-time').style.display = 'block';
+                    
+                    // 퇴근 버튼 잠금
+                    checkOutBtn.disabled = true;
+                    checkOutBtn.style.opacity = '0.5';
+                    checkOutBtn.textContent = '퇴근 완료';
+                    
+                    updateStatus('completed');
+                }
+            } else {
+                throw new Error(result.message);
+            }
         } else {
-            // 🔥 위치 확인 실패 - 한 줄로
             document.getElementById('location-status').innerHTML = 
-                `❌ 위치 인증 실패 | 거리: ${Math.round(distance)}m (허용: ${Math.round(maxAllowedDistance)}m)`;
-            
-            alert(`⚠️ 병원 내에서 다시 시도해주세요.`);
-            
-            setTimeout(() => {
-                document.getElementById('location-status').style.display = 'none';
-            }, 5000);
-            
-            document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = false;
+                `❌ 위치인증 실패 | 거리: ${Math.round(distance)}m (허용: ${Math.round(maxAllowedDistance)}m)`;
+            alert(`⚠️ 병원 내에서 다시시도.`);
+            setTimeout(() => { document.getElementById('location-status').style.display = 'none'; }, 5000);
+            document.getElementById(btnId).disabled = false;
         }
-        
     } catch (error) {
-    console.log('에러 상세:', error);
-    
-    if (error.code === 1 || error.code === 2 || error.code === 3) {
-        // 진짜 GPS 오류
-        document.getElementById('location-status').innerHTML = 
-            '❌ GPS 오류 - 위치 서비스를 켜주세요';
-    } else {
-        // 다른 오류 (서버 통신 등)
-        document.getElementById('location-status').innerHTML = 
-            '❌ 서버 오류 - 다시 시도해주세요';
-    }
-        
-        setTimeout(() => {
-            document.getElementById('location-status').style.display = 'none';
-        }, 5000);
-        
-        document.getElementById(`check-${type === '출근' ? 'in' : 'out'}-btn`).disabled = false;
-        
-        if (error.code === 1) {
-            alert('📍 위치 권한을 허용해주세요');
-        } else if (error.code === 2) {
-            alert('📍 GPS를 켜주세요');
-        } else if (error.code === 3) {
-            alert('📍 실외나 창가로 이동해주세요');
+        if (error.code === 1 || error.code === 2 || error.code === 3) {
+            document.getElementById('location-status').innerHTML = '❌ GPS 오류 - 위치 서비스를 켜주세요';
+        } else {
+            document.getElementById('location-status').innerHTML = '❌ 서버 오류 - 다시 시도해주세요';
         }
+        setTimeout(() => { document.getElementById('location-status').style.display = 'none'; }, 5000);
+        
+        document.getElementById(btnId).disabled = false;
+        
+        if (error.code === 1) alert('📍 위치 권한 허용해주세요');
+        else if (error.code === 2) alert('📍 GPS를 켜주세요');
+        else if (error.code === 3) alert('📍 실외나 창가로 이동해주세요');
     }
 }
     
