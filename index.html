@@ -369,14 +369,17 @@ document.getElementById('status-badge').textContent = '실습 중';
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     
-    if (code) {
+        if (code) {
         // 카카오에서 돌아온 경우
         showLoader(true);
         
+        // URL 먼저 정리 (code 재사용 방지)
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
         try {
-            // 🔥 Apps Script로 실제 카카오 ID 받기
             const response = await fetch(CONFIG.GAS_URL, {
                 method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
                     action: 'getKakaoUser',
                     code: code,
@@ -387,33 +390,48 @@ document.getElementById('status-badge').textContent = '실습 중';
             const result = await response.json();
             
             if (result.kakaoId) {
-                // 🔥 실제 카카오 ID 받음!
                 console.log('실제 카카오 ID:', result.kakaoId);
                 
-                currentUser.kakaoId = result.kakaoId; // 이제 항상 같은 ID
+                currentUser.kakaoId = result.kakaoId;
                 sessionStorage.setItem('kakaoLoginComplete', 'true');
                 sessionStorage.setItem('currentKakaoId', result.kakaoId);
-                
-                // localStorage에도 저장 (영구 보관)
                 localStorage.setItem('realKakaoId', result.kakaoId);
                 
-                // URL 정리
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // 학생 확인
+                initializeSession();
                 await verifyStudent();
                 
             } else {
-                // 실패시 기존 방식 사용
-                handleSimpleKakaoLogin(code);
+                console.error('카카오 ID 받기 실패:', result);
+                showLoader(false);
+                
+                // 이전에 저장된 카카오 ID가 있으면 그걸 사용
+                const savedKakaoId = localStorage.getItem('realKakaoId');
+                if (savedKakaoId) {
+                    console.log('저장된 카카오 ID 사용:', savedKakaoId);
+                    currentUser.kakaoId = savedKakaoId;
+                    initializeSession();
+                    await verifyStudent();
+                } else {
+                    alert('카카오 로그인에 실패했습니다.\n다시 시도해주세요.');
+                    initializeSession();
+                }
             }
             
-                } catch(e) {
+        } catch(e) {
             console.error('카카오 ID 받기 실패:', e);
             showLoader(false);
-            alert('카카오 로그인에 실패했습니다.\n다시 시도해주세요.');
-            window.history.replaceState({}, document.title, window.location.pathname);
-            initializeSession();
+            
+            // 이전에 저장된 카카오 ID가 있으면 그걸 사용
+            const savedKakaoId = localStorage.getItem('realKakaoId');
+            if (savedKakaoId) {
+                console.log('저장된 카카오 ID 사용:', savedKakaoId);
+                currentUser.kakaoId = savedKakaoId;
+                initializeSession();
+                await verifyStudent();
+            } else {
+                alert('카카오 로그인에 실패했습니다.\n다시 시도해주세요.');
+                initializeSession();
+            }
         }
         
         } else {
