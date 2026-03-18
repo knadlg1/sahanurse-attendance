@@ -94,10 +94,14 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         
+                /* 🔥 비활성화(완료)된 버튼은 확실한 회색으로 변경 🔥 */
         .btn:disabled {
-            opacity: 0.5;
+            background: #e2e8f0 !important; /* 밝은 회색 바탕 */
+            color: #94a3b8 !important;     /* 진한 회색 글자 */
+            opacity: 1 !important;         /* 반투명 없애고 쨍한 회색으로 */
             cursor: not-allowed;
-            transform: none;
+            transform: none !important;
+            box-shadow: none !important;   /* 그림자 없애기 */
         }
         
         .kakao-btn { 
