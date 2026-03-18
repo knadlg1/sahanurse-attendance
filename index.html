@@ -245,51 +245,53 @@
             .btn { padding: 14px; font-size: 15px; }
         }
 
-                       /* 🔥 서명 화면(UI) 스타일 (업그레이드 버전) 🔥 */
+                /* 🔥 서명 화면(UI) 스타일 (팝업 패드 버전) 🔥 */
         #signature-section { display: none; animation: slideUp 0.5s ease; }
         
-        /* 대표 패드 */
-        .master-pad-container { background: white; border: 2px dashed #94a3b8; border-radius: 12px; padding: 10px; margin-bottom: 15px; text-align: center; transition: all 0.3s; }
-        .master-canvas { border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; cursor: crosshair; touch-action: none; width: 100%; height: 100px; }
-        .pad-tools { display: flex; justify-content: space-between; margin-top: 10px; }
-        .pad-btn { padding: 8px 15px; font-size: 13px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; }
-        .btn-clear { background: #f1f5f9; color: #475569; }
-        .btn-apply { background: #3b82f6; color: white; flex-grow: 1; margin-left: 10px; transition: all 0.3s; }
-        
-        /* 콤팩트(한 줄) 리스트 스타일 */
-        .record-list { max-height: 350px; overflow-y: auto; padding-right: 5px; margin-bottom: 20px; }
+        /* 콤팩트(한 줄) 리스트 스타일 - 배경 흰색, 여백 축소 */
+        .record-list { max-height: 400px; overflow-y: auto; padding-right: 5px; margin-bottom: 20px; }
         .record-list::-webkit-scrollbar { width: 4px; }
         .record-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         
-        .compact-record { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+        .compact-record { background: white; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
         .compact-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        .compact-date { font-weight: 700; color: #1e293b; font-size: 13px; margin-bottom: 3px; }
+        .compact-date { font-weight: 700; color: #1e293b; font-size: 13px; margin-bottom: 2px; }
         .compact-time { color: #64748b; font-size: 11px; letter-spacing: -0.5px; }
         
-        .compact-sigs { display: flex; gap: 8px; margin-left: 10px; }
-        .compact-sig-box { position: relative; width: 65px; display: flex; flex-direction: column; align-items: center; }
-        .compact-label { font-size: 10px; color: #94a3b8; margin-bottom: 4px; }
-        .compact-canvas { width: 100%; height: 40px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; touch-action: none; }
+        .compact-sigs { display: flex; gap: 6px; margin-left: 5px; }
+        .compact-sig-box { position: relative; width: 60px; display: flex; flex-direction: column; align-items: center; }
+        .compact-label { font-size: 10px; color: #94a3b8; margin-bottom: 3px; }
+        /* 작은 서명칸 (터치 버튼 역할) */
+        .compact-canvas { width: 100%; height: 40px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; cursor: pointer; }
         
-        /* 개별 삭제 버튼 (미니) */
         .mini-clear-btn { position: absolute; top: 12px; right: -5px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; font-weight: bold; cursor: pointer; display: none; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         
         /* 모드별 잠금 */
         body[data-mode="student"] .manager-box { opacity: 0.3; pointer-events: none; }
         body[data-mode="manager"] .student-box { opacity: 0.3; pointer-events: none; }
-        body[data-mode="manager"] .master-pad-container { border-color: #10b981; }
-        body[data-mode="manager"] .btn-apply { background: #10b981; }
 
         /* 터치 오버레이 */
         .locked-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2000; display: none; cursor: pointer; }
         @keyframes pulse-btn { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
         .touch-start-btn { margin-top: 40px; background: #10b981; color: white; padding: 15px 30px; border-radius: 30px; font-size: 18px; font-weight: bold; animation: pulse-btn 2s infinite; pointer-events: none; }
+
+        /* 🔥 새롭게 추가된 팝업 서명 패드 디자인 🔥 */
+        .sig-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 3000; display: none; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(2px); }
+        .sig-modal-card { background: white; width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; }
+        .sig-modal-title { font-size: 16px; font-weight: bold; color: #1e293b; text-align: center; margin-bottom: 15px; }
+        /* 팝업 서명칸 (크게 키움) */
+        .modal-canvas { border: 2px dashed #94a3b8; border-radius: 8px; background: #f8fafc; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+        .modal-tools { display: flex; justify-content: space-between; margin-top: 15px; gap: 10px; }
+        .modal-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .modal-btn-cancel { background: #f1f5f9; color: #475569; }
+        .modal-btn-save { background: #3b82f6; color: white; }
+                       
     </style>
 </head>
 <body>
     <!-- 선생님에게 건네줄 때 뜨는 오버레이 화면 (터치 방식) -->
 <div class="locked-overlay" id="handover-overlay" onclick="startManagerMode()">
-    <h2 style="font-size:24px; text-align:center; line-height:1.4; margin-bottom:10px;">📱 화면을 실습 담당 선생님께<br>건네주세요!</h2>
+    <h2 style="font-size:24px; text-align:center; line-height:1.4; margin-bottom:10px;">📱 실습 담당 선생님의<br>서명 받기!</h2>
     <p style="color:#cbd5e1; font-size:14px; text-align:center;">선생님 서명 모드로 전환됩니다.</p>
     <div class="touch-start-btn">👆 터치해서 시작하기</div>
 </div>
@@ -319,7 +321,7 @@
             </p>
         </div>
         
-        <!-- 로그인 후 화면 -->
+                <!-- 로그인 후 화면 -->
         <div id="main-section" style="display: none;">
             <div class="user-info">
                 <div class="user-name" id="user-name">-</div>
@@ -340,37 +342,28 @@
                 </div>
             </div>
             
-            <!-- 처음부터 둘 다 숨기고 비활성화 -->
-<button class="btn check-in-btn" id="check-in-btn" onclick="doCheckIn()" style="display: none;" disabled>
-    출근하기
-</button>
-<button class="btn check-out-btn" id="check-out-btn" onclick="doCheckOut()" style="display: none;" disabled>
-    퇴근하기
-</button>
+            <button class="btn check-in-btn" id="check-in-btn" onclick="doCheckIn()" style="display: none;" disabled>
+                출근하기
+            </button>
+            <button class="btn check-out-btn" id="check-out-btn" onclick="doCheckOut()" style="display: none;" disabled>
+                퇴근하기
+            </button>
+
+            <!-- 서명 진입 버튼 -->
+            <button class="btn" id="test-sig-btn" style="background:#475569; color:white; margin-top:20px;" onclick="openSignatureUI()">📋 10월 1일 ~ 10월 31일 실습근무 서명</button>
         </div>
-                    <!-- 임시 서명 테스트 버튼 (나중에 자동화되면 숨길 예정) -->
-            <button class="btn" id="test-sig-btn" style="background:#475569; color:white; margin-top:20px;" onclick="openSignatureUI()">📋 이번 달 서명하기 (기능 테스트)</button>
-        </div> <!-- id="main-section"의 닫는 태그가 여기 있어야 합니다. 확인해주세요! -->
         
-               <!-- 🔥 서명 섹션 (업그레이드) 🔥 -->
+        <!-- 🔥 서명 섹션 (팝업 버전) 🔥 -->
         <div id="signature-section">
-            <!-- 아주 심플해진 헤더 -->
             <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="font-size: 22px; color: #1e293b; margin-bottom: 5px;">📋 실습근무카드</h2>
-                <p style="font-size: 15px; color: #3b82f6; font-weight: bold;">10월 1일 ~ 10월 31일</p>
+                <h2 style="font-size: 20px; color: #1e293b; margin-bottom: 5px;">📋 실습근무카드</h2>
+                <p style="font-size: 18px; color: #000000; font-weight: 800; letter-spacing: -0.5px;">10월 1일 ~ 10월 31일</p>
             </div>
 
-            <!-- 대표 서명 패드 -->
-            <div class="master-pad-container" id="master-pad-container">
-                <p style="font-size:12px; color:#64748b; margin-bottom:5px; font-weight:bold;" id="master-pad-title">학생 대표 서명 패드 (여기에 서명하세요)</p>
-                <canvas id="master-canvas" class="master-canvas"></canvas>
-                <div class="pad-tools">
-                    <button class="pad-btn btn-clear" onclick="clearCanvas('master-canvas')">지우기</button>
-                    <button class="pad-btn btn-apply" onclick="applyMasterSignature()" id="apply-btn-text">👇 내 서명 일괄 채우기</button>
-                </div>
-            </div>
+            <button class="btn" id="master-sig-btn" style="background: #3b82f6; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);" onclick="openSignatureModal('master')">
+                ✍️ 내 서명 일괄 등록하기
+            </button>
 
-            <!-- 한 줄(콤팩트) 내역 리스트 -->
             <div class="record-list" id="record-list"></div>
 
             <button class="btn" id="mode-switch-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-top: 10px;" onclick="showHandoverOverlay()">
@@ -380,12 +373,28 @@
                 최종 서명 제출하기
             </button>
         </div>
+        
         <div class="loader" id="loader"></div>
         <div class="location-status" id="location-status"></div>
         <div class="error-message" id="error-message"></div>
     </div>
 </div>
 
+<!-- 🔥 팝업(모달) 서명 패드 창 🔥 -->
+<div class="sig-modal-overlay" id="sig-modal">
+    <div class="sig-modal-card">
+        <div class="sig-modal-title" id="sig-modal-title">서명을 정자로 입력해주세요</div>
+        <canvas id="modal-canvas" class="modal-canvas"></canvas>
+        <div style="text-align: right; margin-top: 5px;">
+            <button onclick="clearModalCanvas()" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">[지우기]</button>
+        </div>
+        <div class="modal-tools">
+            <button class="modal-btn modal-btn-cancel" onclick="closeSignatureModal()">취소</button>
+            <button class="modal-btn modal-btn-save" id="modal-save-btn" onclick="saveSignatureFromModal()">입력 완료</button>
+        </div>
+    </div>
+</div>
+        
 <script>
     // ==================== 설정 ====================
     const CONFIG = {
@@ -1160,12 +1169,14 @@ async function processAttendance(type) {
         };
     }
 
-           // ==================== 🔥 서명 UI 관련 스크립트 (업그레이드) 🔥 ====================
+        // ==================== 🔥 서명 UI 스크립트 (팝업 모달 버전) 🔥 ====================
     let currentMode = 'student'; 
-    
-    // 서명 화면 열기 (기존 제목 싹 숨기기)
+    let currentSigTarget = null; // 'master' 이거나 개별 캔버스 HTML 요소
+    let modalCtx;
+    let isModalDrawing = false;
+
+    // 서명 화면 열기
     function openSignatureUI() {
-        // 불필요한 상단 숨기기
         document.querySelector('h1').style.display = 'none';
         document.getElementById('main-subtitle').style.display = 'none';
         
@@ -1173,49 +1184,38 @@ async function processAttendance(type) {
         document.getElementById('signature-section').style.display = 'block';
         document.body.setAttribute('data-mode', 'student');
         
-        // 대표 패드 셋팅
-        setupCanvasDrawing(document.getElementById('master-canvas'));
-        
-        // 가짜 데이터 리스트 그리기
+        initModalCanvas();
         renderMockRecords(); 
     }
 
-    // 🎨 캔버스 그리기 공통 함수 (이제 개별 작은 칸에도 직접 그릴 수 있습니다!)
-    function setupCanvasDrawing(canvas) {
-        if (canvas.dataset.setup === 'true') return; // 중복 방지
+    // --- 팝업 모달 관련 함수 ---
+    function initModalCanvas() {
+        const canvas = document.getElementById('modal-canvas');
+        if (canvas.dataset.setup === 'true') return;
         canvas.dataset.setup = 'true';
 
-        const ctx = canvas.getContext('2d');
-        // 부모 박스 크기에 맞춰 해상도 설정
-        canvas.width = canvas.offsetWidth || 150; 
-        canvas.height = canvas.offsetHeight || 60;
+        modalCtx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth || 340;
+        canvas.height = canvas.offsetHeight || 180;
         
-        ctx.lineWidth = canvas.id === 'master-canvas' ? 3 : 2; // 작은칸은 펜 굵기를 얇게
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#0f172a';
+        modalCtx.lineWidth = 4;
+        modalCtx.lineCap = 'round';
+        modalCtx.strokeStyle = '#0f172a';
 
-        let isDrawing = false;
-
-        const start = (e) => { isDrawing = true; draw(e); };
+        const start = (e) => { isModalDrawing = true; draw(e); };
         const draw = (e) => {
-            if (!isDrawing) return;
+            if (!isModalDrawing) return;
             e.preventDefault();
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            ctx.lineTo(clientX - rect.left, clientY - rect.top);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(clientX - rect.left, clientY - rect.top);
-
-            // 그리기 시작하면 삭제 버튼(X) 표시
-            const clearBtn = canvas.nextElementSibling;
-            if(clearBtn && clearBtn.classList.contains('mini-clear-btn')) {
-                clearBtn.style.display = 'block';
-            }
+            modalCtx.lineTo(clientX - rect.left, clientY - rect.top);
+            modalCtx.stroke();
+            modalCtx.beginPath();
+            modalCtx.moveTo(clientX - rect.left, clientY - rect.top);
         };
-        const stop = () => { isDrawing = false; ctx.beginPath(); };
+        const stop = () => { isModalDrawing = false; modalCtx.beginPath(); };
 
         canvas.addEventListener('mousedown', start);
         canvas.addEventListener('mousemove', draw);
@@ -1227,100 +1227,157 @@ async function processAttendance(type) {
         canvas.addEventListener('touchend', stop);
     }
 
-    // 특정 캔버스 지우기
-    function clearCanvas(canvasIdOrElement) {
-        const canvas = typeof canvasIdOrElement === 'string' ? document.getElementById(canvasIdOrElement) : canvasIdOrElement;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function clearModalCanvas() {
+        const canvas = document.getElementById('modal-canvas');
+        modalCtx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 팝업 열기 (어디서 호출했는지 target에 저장)
+    function openSignatureModal(target) {
+        currentSigTarget = target;
+        clearModalCanvas();
         
-        // 미니 삭제버튼 숨기기
-        const clearBtn = canvas.nextElementSibling;
+        const titleEl = document.getElementById('sig-modal-title');
+        const saveBtn = document.getElementById('modal-save-btn');
+
+        if (target === 'master') {
+            titleEl.textContent = currentMode === 'student' ? "학생 서명 (일괄 적용)" : "담당자 서명 (일괄 적용)";
+            titleEl.style.color = currentMode === 'student' ? "#3b82f6" : "#10b981";
+            saveBtn.style.background = currentMode === 'student' ? "#3b82f6" : "#10b981";
+            saveBtn.textContent = "모두 채우기";
+        } else {
+            titleEl.textContent = "개별 서명 입력";
+            titleEl.style.color = "#1e293b";
+            saveBtn.style.background = "#0f172a";
+            saveBtn.textContent = "이 칸에만 적용";
+        }
+        
+        document.getElementById('sig-modal').style.display = 'flex';
+    }
+
+    function closeSignatureModal() {
+        document.getElementById('sig-modal').style.display = 'none';
+        currentSigTarget = null;
+    }
+
+    // 팝업에서 [입력 완료] 눌렀을 때
+    function saveSignatureFromModal() {
+        const modalCanvas = document.getElementById('modal-canvas');
+        
+        // 빈 캔버스인지 확인 (꼼수 방지)
+        const isBlank = !modalCtx.getImageData(0,0,modalCanvas.width,modalCanvas.height).data.some(channel => channel !== 0);
+        if (isBlank) {
+            alert('서명을 입력해주세요.');
+            return;
+        }
+
+        if (currentSigTarget === 'master') {
+            // [일괄 적용] 선택한 모드(학생/선생님)의 비어있는 모든 칸에 복사
+            const targetClass = currentMode === 'student' ? '.student-canvas' : '.manager-canvas';
+            document.querySelectorAll(targetClass).forEach(canvas => {
+                copyCanvas(modalCanvas, canvas);
+            });
+        } else {
+            // [개별 적용] 선택한 작은 칸 하나에만 복사
+            copyCanvas(modalCanvas, currentSigTarget);
+        }
+        
+        closeSignatureModal();
+    }
+
+    function copyCanvas(sourceCanvas, destCanvas) {
+        const ctx = destCanvas.getContext('2d');
+        // 부모 크기 맞추기
+        if(!destCanvas.width) {
+            destCanvas.width = destCanvas.offsetWidth || 60;
+            destCanvas.height = destCanvas.offsetHeight || 40;
+        }
+        ctx.clearRect(0, 0, destCanvas.width, destCanvas.height);
+        ctx.drawImage(sourceCanvas, 0, 0, destCanvas.width, destCanvas.height);
+        
+        // 삭제(X) 버튼 보이기
+        const clearBtn = destCanvas.nextElementSibling;
         if(clearBtn && clearBtn.classList.contains('mini-clear-btn')) {
-            clearBtn.style.display = 'none';
+            clearBtn.style.display = 'block';
         }
     }
 
-    // 대표 서명 -> 비어있는 칸에만 일괄 복사! (이미 그린 곳은 덮어쓰지 않음)
-    function applyMasterSignature() {
-        const masterCanvas = document.getElementById('master-canvas');
-        const targetClass = currentMode === 'student' ? '.student-canvas' : '.manager-canvas';
-        const targetCanvases = document.querySelectorAll(targetClass);
-        
-        targetCanvases.forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            // 캔버스를 싹 지우고 대표 서명을 우겨넣음
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(masterCanvas, 0, 0, canvas.width, canvas.height);
-            
-            canvas.nextElementSibling.style.display = 'block'; // X버튼 켜기
-        });
-        alert('모든 근무일에 서명이 일괄 적용되었습니다!');
+    // 특정 작은 칸 지우기
+    function clearSmallCanvas(btnElement) {
+        const canvas = btnElement.previousElementSibling;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        btnElement.style.display = 'none'; // X 버튼 숨기기
     }
 
-    // 화면 넘겨주기 오버레이 띄우기
+    // 작은 캔버스를 터치했을 때 (비어있으면 팝업 열기)
+    function handleSmallCanvasTouch(canvasElement) {
+        // 자기 모드가 아니면 무시 (학생이 담당자칸 터치 불가)
+        if (currentMode === 'student' && !canvasElement.classList.contains('student-canvas')) return;
+        if (currentMode === 'manager' && !canvasElement.classList.contains('manager-canvas')) return;
+
+        // 이미 서명이 있으면(X버튼이 보이면) 작동 안함 -> 먼저 지우라고 유도
+        const clearBtn = canvasElement.nextElementSibling;
+        if (clearBtn && clearBtn.style.display === 'block') {
+            return; 
+        }
+        
+        // 비어있으면 팝업 패드 오픈!
+        openSignatureModal(canvasElement);
+    }
+
+    // --- 화면 전환 및 렌더링 ---
     function showHandoverOverlay() {
         document.getElementById('handover-overlay').style.display = 'flex';
     }
 
-    // [중요] 오버레이 터치 시 담당자 모드로 완벽 전환
     function startManagerMode() {
         document.getElementById('handover-overlay').style.display = 'none';
         currentMode = 'manager';
         document.body.setAttribute('data-mode', 'manager');
         
-        document.getElementById('master-pad-title').textContent = "담당자 대표 서명 패드 (선생님 서명)";
-        document.getElementById('master-pad-title').style.color = "#10b981";
-        document.getElementById('apply-btn-text').textContent = "👇 담당자 서명 모두 채우기";
+        document.getElementById('master-sig-btn').innerHTML = "✍️ 담당자 서명 일괄 등록하기";
+        document.getElementById('master-sig-btn').style.background = "#10b981";
+        document.getElementById('master-sig-btn').style.boxShadow = "0 4px 6px rgba(16, 185, 129, 0.3)";
         
         document.getElementById('mode-switch-btn').style.display = 'none';
         document.getElementById('final-submit-btn').style.display = 'block';
-        
-        clearCanvas('master-canvas'); // 대표 패드 초기화
     }
 
-    // 한 줄(콤팩트) 데이터 렌더링
     function renderMockRecords() {
         const listDiv = document.getElementById('record-list');
         listDiv.innerHTML = '';
         
-        for(let i=1; i<=5; i++) {
+        for(let i=1; i<=30; i++) {
             listDiv.innerHTML += `
                 <div class="compact-record">
                     <div class="compact-info">
                         <div class="compact-date">10월 ${i}일</div>
                         <div class="compact-time">09:00~18:00 (8h)</div>
                     </div>
-                    
                     <div class="compact-sigs">
                         <!-- 학생 서명칸 -->
                         <div class="compact-sig-box student-box">
                             <div class="compact-label">학생</div>
-                            <canvas class="compact-canvas student-canvas"></canvas>
-                            <button class="mini-clear-btn" onclick="clearCanvas(this.previousElementSibling)">X</button>
+                            <canvas class="compact-canvas student-canvas" onclick="handleSmallCanvasTouch(this)"></canvas>
+                            <button class="mini-clear-btn" onclick="clearSmallCanvas(this)">X</button>
                         </div>
-                        
                         <!-- 담당자 서명칸 -->
                         <div class="compact-sig-box manager-box">
                             <div class="compact-label">담당자</div>
-                            <canvas class="compact-canvas manager-canvas"></canvas>
-                            <button class="mini-clear-btn" onclick="clearCanvas(this.previousElementSibling)">X</button>
+                            <canvas class="compact-canvas manager-canvas" onclick="handleSmallCanvasTouch(this)"></canvas>
+                            <button class="mini-clear-btn" onclick="clearSmallCanvas(this)">X</button>
                         </div>
                     </div>
                 </div>
             `;
         }
-
-        // 리스트를 다 만든 후 모든 작은 캔버스에 '그리기 기능' 부여!
-        document.querySelectorAll('.compact-canvas').forEach(canvas => {
-            setupCanvasDrawing(canvas);
-        });
     }
 
     function submitFinalSignature() {
-        alert('✅ 훌륭합니다! 서명 데이터가 수집되었습니다. (백엔드 연동 전)');
+        alert('✅ 훌륭합니다! 서류 제출 로직이 시작됩니다.');
         location.reload();
     }
-
 
 </script>
 
