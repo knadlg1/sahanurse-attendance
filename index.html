@@ -328,42 +328,41 @@
         .time-display { margin-top: 10px !important; gap: 6px !important; }
         .time-row { padding: 8px 12px !important; font-size: 13px !important; }
     
-            /* 🔥 5:5 액션 버튼 스타일 🔥 */
-        .action-buttons-container { display: flex; gap: 10px; margin-bottom: 20px; }
-        .action-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-        .btn-action { color: white; border: none; border-radius: 10px; padding: 14px 10px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+                   /* 🔥 5:5 액션 버튼 (자동 글자 크기 조절 & 높이 완벽 통일) 🔥 */
+        .action-buttons-container { display: flex; gap: 8px; margin-bottom: 20px; width: 100%; }
+        .action-col { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        
+        /* 메인 액션 버튼 ('수강증명서 발급' 등) */
+        .btn-action { 
+            color: white; border: none; border-radius: 10px; 
+            padding: 14px 2px !important; 
+            /* 🔥 핵심: 화면이 좁으면 11px까지 줄어들고, 넓으면 15px까지 커집니다! 🔥 */
+            font-size: clamp(11px, 3.8vw, 15px) !important; 
+            font-weight: bold; cursor: pointer; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s;
+            white-space: nowrap !important; /* 🔥 절대 줄바꿈 금지 */
+            display: flex; align-items: center; justify-content: center;
+            height: 52px; /* 두 버튼의 높이를 강제로 똑같이 맞춤 */
+            letter-spacing: -0.5px;
+        }
         .btn-action:active { transform: scale(0.95); }
         .bg-red { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); }
         .bg-blue { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); }
-        .btn-history { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        .btn-history:hover { background: #e2e8f0; }
         
-        /* 내역 리스트 아이템 스타일 */
-        .history-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .history-btn { background: #334155; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; text-decoration: none; }
-
-        /* 🔥 전체 폰트 +2pt 확대 및 모달창 입력칸 삐져나감 방지 🔥 */
-        .user-name { font-size: 22px !important; }
-        .user-hospital { font-size: 15px !important; }
-        .stats-table th { font-size: 15px !important; }
-        .stats-table td { font-size: 16px !important; }
-        .btn-action { font-size: 16px !important; padding: 16px 10px !important; }
-        .btn-sick-leave { font-size: 14px !important; padding: 14px 6px !important; }
-        .btn-history { font-size: 14px !important; padding: 12px !important; }
-        h1 { font-size: 26px !important; }
-        .subtitle { font-size: 16px !important; }
-        .btn { font-size: 18px !important; padding: 18px !important; }
-        #total-period-display { font-size: 16px !important; }
-        .status-badge { font-size: 15px !important; padding: 10px 16px !important; }
-        .time-row { font-size: 15px !important; }
-        .sig-modal-title { font-size: 18px !important; }
-        
-        /* 모달창(팝업) 안의 모든 입력칸 강제 사이즈 맞춤 */
-        .sig-modal-card input {
-            box-sizing: border-box !important;
-            width: 100% !important;
-            max-width: 100% !important;
+        /* 서브 내역 보기 버튼 ('제출 기록 보기') */
+        .btn-history { 
+            background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; 
+            padding: 10px 2px !important; 
+            /* 🔥 핵심: 화면이 좁으면 10px까지 줄어들고, 넓으면 13px까지 커집니다! 🔥 */
+            font-size: clamp(10px, 3.2vw, 13px) !important; 
+            font-weight: bold; cursor: pointer; 
+            transition: background 0.2s;
+            white-space: nowrap !important; /* 🔥 절대 줄바꿈 금지 */
+            display: flex; align-items: center; justify-content: center;
+            height: 40px; /* 높이 고정 */
+            letter-spacing: -0.5px;
         }
+        .btn-history:hover { background: #e2e8f0; }
         
     </style>
 </head>
