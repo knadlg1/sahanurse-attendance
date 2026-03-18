@@ -1352,47 +1352,77 @@ async function processAttendance(type) {
         document.getElementById('final-submit-btn').style.display = 'block';
     }
 
-    // --- 요일 자동 생성 로직 포함 렌더링 ---
+       // --- 실습 시작일 기준 30일 고정 & 결석일 처리 렌더링 ---
     function renderMockRecords() {
         const listDiv = document.getElementById('record-list');
         listDiv.innerHTML = '';
         
-        // 기준일: 2024년 10월 1일로 설정 (월은 0부터 시작하므로 9)
-        let baseDate = new Date(2024, 9, 1);
+        // 🔥 나중에는 DB에서 가져올 '실습시작일' (테스트용: 2024년 10월 5일)
+        let startDate = new Date(2024, 9, 5); 
+        
+        // 종료일 계산 (시작일 포함 30일)
+        let endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 29); 
+        
+        // 상단 제목 텍스트 업데이트 (시작일 ~ 종료일)
+        const headerTitle = document.querySelector('#signature-section p');
+        if (headerTitle) {
+            headerTitle.innerHTML = `${startDate.getFullYear()}년 ${startDate.getMonth()+1}월 ${startDate.getDate()}일 <br>~ ${endDate.getFullYear()}년 ${endDate.getMonth()+1}월 ${endDate.getDate()}일`;
+        }
+
         const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-        for(let i=0; i<30; i++) {
-            let currentDate = new Date(baseDate);
-            currentDate.setDate(baseDate.getDate() + i);
+        // 정확히 30번을 반복합니다! (구글 문서 템플릿 30칸과 1:1 매칭)
+        for(let i = 0; i < 30; i++) {
+            let currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
             
             let month = currentDate.getMonth() + 1;
             let date = currentDate.getDate();
-            let dayNum = currentDate.getDay();
+            let dayNum = currentDate.getDay(); 
             let dayStr = dayNames[dayNum];
             
-            // 일요일은 빨간색, 토요일은 파란색
             let dayColor = dayNum === 0 ? 'color: #ef4444;' : (dayNum === 6 ? 'color: #3b82f6;' : 'color: #64748b;');
 
-            listDiv.innerHTML += `
-                <div class="compact-record">
-                    <div class="compact-info">
-                        <div class="compact-date">${month}월 ${date}일 <span style="font-size:11px; ${dayColor}">(${dayStr})</span></div>
-                        <div class="compact-time">09:00~18:00 (8h)</div>
-                    </div>
-                    <div class="compact-sigs">
-                        <div class="compact-sig-box student-box">
-                            <div class="compact-label">학생</div>
-                            <canvas class="compact-canvas student-canvas" onclick="handleSmallCanvasTouch(this)"></canvas>
-                            <button class="mini-clear-btn" onclick="clearSmallCanvas(this)">X</button>
+            // 🔥 핵심: DB에 출결 데이터가 있는지 확인하는 로직 (지금은 테스트로 일요일 무조건 결석 처리)
+            let isAbsent = (dayNum === 0); 
+
+            if (isAbsent) {
+                // ❌ 데이터 없는 날 (서명칸 없음, '-' 표시)
+                listDiv.innerHTML += `
+                    <div class="compact-record" style="background: #f8fafc; border: 1px dashed #e2e8f0; opacity: 0.8;">
+                        <div class="compact-info">
+                            <div class="compact-date" style="color:#94a3b8;">${month}월 ${date}일 <span style="font-size:11px; ${dayColor}">(${dayStr})</span></div>
+                            <div class="compact-time" style="color: #cbd5e1;">- (출석 기록 없음)</div>
                         </div>
-                        <div class="compact-sig-box manager-box">
-                            <div class="compact-label">담당자</div>
-                            <canvas class="compact-canvas manager-canvas" onclick="handleSmallCanvasTouch(this)"></canvas>
-                            <button class="mini-clear-btn" onclick="clearSmallCanvas(this)">X</button>
+                        <div class="compact-sigs" style="justify-content: center; width: 130px; align-items: center; color: #94a3b8; font-size: 12px; font-weight: bold; letter-spacing: -0.5px;">
+                            서명 제외
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                // ✅ 데이터 있는 날 (서명칸 정상 출력)
+                listDiv.innerHTML += `
+                    <div class="compact-record">
+                        <div class="compact-info">
+                            <div class="compact-date">${month}월 ${date}일 <span style="font-size:11px; ${dayColor}">(${dayStr})</span></div>
+                            <div class="compact-time">09:00~18:00 (8h)</div>
+                        </div>
+                        <div class="compact-sigs">
+                            <div class="compact-sig-box student-box">
+                                <div class="compact-label">학생</div>
+                                <canvas class="compact-canvas student-canvas" onclick="handleSmallCanvasTouch(this)"></canvas>
+                                <button class="mini-clear-btn" onclick="clearSmallCanvas(this)">X</button>
+                            </div>
+                            <div class="compact-sig-box manager-box">
+                                <div class="compact-label">담당자</div>
+                                <canvas class="compact-canvas manager-canvas" onclick="handleSmallCanvasTouch(this)"></canvas>
+                                <button class="mini-clear-btn" onclick="clearSmallCanvas(this)">X</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
     }
 
