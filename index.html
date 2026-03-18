@@ -375,7 +375,7 @@
             <!-- 서명 진입 버튼 -->
                        <!-- 🔥 서명 제출 리스트 (회차별 자동 생성) 🔥 -->
             <div id="signature-list-container" style="margin-top:25px; border-top: 1px dashed #cbd5e1; padding-top: 20px;">
-                <h3 style="font-size: 16px; color: #334155; margin-bottom: 15px; text-align: center;">📋 나의 실습 서명 제출 내역</h3>
+                <h3 style="font-size: 16px; color: #334155; margin-bottom: 15px; text-align: center;">📋 실습근무카드 현황</h3>
                 <div id="interval-list">
                     <!-- 자바스크립트가 여기에 회차들을 그려줄 겁니다 -->
                 </div>
@@ -426,7 +426,7 @@
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbygmBdoGWpDqjlTO5YhLm062DeERkl6WBCjI3UWw4L9x_NPiFI1wM3YKn7WcsDs1sI3-A/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbxSF9NWOKUt2q9JsvY7FAYoDM-GP3rdpP8eGPp_hS37TBQ2s-zDkWq1-mrxKvgANZCW/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 100, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -862,7 +862,7 @@ function forceRedirect(url) {
             
         } else {
             showLoader(false);
-            alert('❌ 등록 실패\n\n가능한 원인:\n1. 이름/전화번호가 명단과 일치하지 않음\n2. 이미 다른 기기에 등록됨\n\n학원문의.');
+            alert('❌ 등록 실패\n\n가능한 원인:\n1. 이름/전화번호가 일치하지 않음\n2. 이미 다른 기기에 등록됨\n\n학원문의.');
             
             // 저장된 정보 삭제
             localStorage.removeItem('registeredUser');
@@ -1136,7 +1136,7 @@ async function processAttendance(type) {
         renderIntervalList();
     }
 
-    function renderIntervalList() {
+        function renderIntervalList() {
         const container = document.getElementById('interval-list');
         container.innerHTML = '';
 
@@ -1146,6 +1146,13 @@ async function processAttendance(type) {
         }
 
         currentUser.intervals.forEach(inv => {
+            // 🔥 날짜 텍스트 간소화 (2026-02-06 -> 26-02-06 / 2026-03-07 -> 03-07)
+            const sParts = inv.startDate.split('-'); 
+            const eParts = inv.endDate.split('-');   
+            const shortStart = `${sParts[0].substring(2)}-${sParts[1]}-${sParts[2]}`; // 26-02-06
+            const shortEnd = `${eParts[1]}-${eParts[2]}`; // 03-07
+            const displayDate = `${shortStart}~${shortEnd}`;
+
             let btnHtml = '';
             if (inv.status === 'completed') {
                 btnHtml = `<button class="interval-btn btn-completed" disabled>제출완료</button>`;
@@ -1155,11 +1162,12 @@ async function processAttendance(type) {
                 btnHtml = `<button class="interval-btn btn-locked" disabled>진행 중</button>`;
             }
 
+            // 🔥 UI 한 줄로 예쁘게 정렬
             container.innerHTML += `
-                <div class="interval-card">
-                    <div class="interval-info">
-                        <span class="interval-round">${inv.round}회차 서명</span>
-                        <span class="interval-date">${inv.startDate} ~ ${inv.endDate}</span>
+                <div class="interval-card" style="padding: 12px 15px;">
+                    <div class="interval-info" style="flex-direction: row; align-items: center; gap: 8px;">
+                        <span class="interval-round" style="margin:0;">${inv.round}회차</span>
+                        <span class="interval-date" style="font-size: 13px;">${displayDate}</span>
                     </div>
                     ${btnHtml}
                 </div>
@@ -1396,7 +1404,7 @@ async function processAttendance(type) {
         showLoader(true);
         const btn = document.getElementById('final-submit-btn');
         btn.disabled = true;
-        btn.textContent = '구글 문서 생성 중... ⏳ (약 10초 소요)';
+        btn.textContent = '문서 생성 중... ⏳ (약 10초 소요)';
 
         // 🔥 화면에 있는 1~30일차 출결 데이터 & 캔버스 서명 이미지 수집
         const recordElements = document.querySelectorAll('.compact-record');
@@ -1457,8 +1465,10 @@ async function processAttendance(type) {
             const result = await response.json();
             showLoader(false);
             
-            if (result.status === 'success') {
-                alert('🎉 문서 제출이 완료되었습니다!\n(학생UI에 제출완료로 변경됩니다)');
+                        if (result.status === 'success') {
+                alert('🎉 문서 제출 완료!\n(제출완료로 변경)');
+                // 🔥 폰이 가진 임시 기억을 지워버림 -> 새로고침 시 무조건 서버에 다시 물어보게 됨!
+                sessionStorage.removeItem('currentUser'); 
                 location.reload(); 
             } else {
                 alert('❌ 제출 실패: ' + result.message);
@@ -1556,9 +1566,9 @@ async function processAttendance(type) {
                     </div>
                 `;
             } else {
-                // ✅ 데이터 있는 날 (출퇴근 시간 + 서명칸 띄우기)
-                let inTime = record.checkIn.length > 5 ? record.checkIn.substring(0, 5) : record.checkIn;
-                let outTime = record.checkOut.length > 5 ? record.checkOut.substring(0, 5) : record.checkOut;
+                // 🔥 자르는 기능 삭제! 원본 시간 그대로 노출 (초 단위 포함)
+let inTime = record.checkIn;
+let outTime = record.checkOut;
                 
                 listDiv.innerHTML += `
                     <div class="compact-record">
