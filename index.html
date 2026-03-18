@@ -341,7 +341,30 @@
         /* 내역 리스트 아이템 스타일 */
         .history-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
         .history-btn { background: #334155; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: bold; cursor: pointer; text-decoration: none; }
-    
+
+        /* 🔥 전체 폰트 +2pt 확대 및 모달창 입력칸 삐져나감 방지 🔥 */
+        .user-name { font-size: 22px !important; }
+        .user-hospital { font-size: 15px !important; }
+        .stats-table th { font-size: 15px !important; }
+        .stats-table td { font-size: 16px !important; }
+        .btn-action { font-size: 16px !important; padding: 16px 10px !important; }
+        .btn-sick-leave { font-size: 14px !important; padding: 14px 6px !important; }
+        .btn-history { font-size: 14px !important; padding: 12px !important; }
+        h1 { font-size: 26px !important; }
+        .subtitle { font-size: 16px !important; }
+        .btn { font-size: 18px !important; padding: 18px !important; }
+        #total-period-display { font-size: 16px !important; }
+        .status-badge { font-size: 15px !important; padding: 10px 16px !important; }
+        .time-row { font-size: 15px !important; }
+        .sig-modal-title { font-size: 18px !important; }
+        
+        /* 모달창(팝업) 안의 모든 입력칸 강제 사이즈 맞춤 */
+        .sig-modal-card input {
+            box-sizing: border-box !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
     </style>
 </head>
 <body>
@@ -470,7 +493,7 @@
         </div>
         
         <div class="loader" id="loader"></div>
-        <div class="location-status" id="location-status"></div>
+        
         <div class="error-message" id="error-message"></div>
     </div>
 </div>
@@ -1041,124 +1064,107 @@ async function checkTodayStatus() {
         await processAttendance('퇴근');
     }
     
-    // ==================== 출결 처리 공통 ====================
-    // ==================== 출결 처리 공통 ====================
-async function processAttendance(type) {
-    await verifyStudent();
-    
-    if (remainingTime <= 0) {
-        alert('세션 만료. 새로고침 해주세요.');
-        return;
-    }
-    
-    // 버튼 두 번 연속 클릭 방지
-    const btnId = `check-${type === '출근' ? 'in' : 'out'}-btn`;
-    document.getElementById(btnId).disabled = true;
-    
-    document.getElementById('location-status').style.display = 'block';
-    document.getElementById('location-status').innerHTML = '📍 위치 확인 중...<br><small>GPS 권한 허용해주세요</small>';
-    
-    try {
-        const position = await getCurrentPosition();
-        const distance = calculateDistance(
-            position.coords.latitude, position.coords.longitude,
-            currentUser.hospitalLat, currentUser.hospitalLon
-        );
+        // ==================== 출결 처리 공통 (팝업 오버레이 적용) ====================
+    async function processAttendance(type) {
+        await verifyStudent();
         
-        document.getElementById('location-status').innerHTML = 
-            `📍위치: ✅승인 | 거리: ${Math.round(distance)}m | GPS정확도: ${Math.round(position.coords.accuracy)}m`;
+        if (remainingTime <= 0) {
+            alert('세션 만료. 새로고침 해주세요.');
+            return;
+        }
         
-        const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 50);
+        const btnId = `check-${type === '출근' ? 'in' : 'out'}-btn`;
+        document.getElementById(btnId).disabled = true;
         
-        if (distance <= maxAllowedDistance) {
-            document.getElementById('location-status').innerHTML = `✅ 위치 승인! ${type} 처리 중...`;
+        // 🔥 화면 어두워지며 처리 중 팝업 띄우기
+        const overlay = document.getElementById('processing-overlay');
+        const overlayText = document.getElementById('processing-text');
+        overlay.style.display = 'flex';
+        overlayText.innerHTML = `📍 위치 확인 중...<br><span style="font-size:14px; font-weight:normal; margin-top:10px; display:block; color:#cbd5e1;">(잠시만 기다려주세요)</span>`;
+        
+        try {
+            const position = await getCurrentPosition();
+            const distance = calculateDistance(
+                position.coords.latitude, position.coords.longitude,
+                currentUser.hospitalLat, currentUser.hospitalLon
+            );
+            
+            const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 50);
+            
+            if (distance <= maxAllowedDistance) {
+                overlayText.innerHTML = `✅ 위치 인증 완료!<br><span style="font-size:14px; font-weight:normal; margin-top:10px; display:block; color:#cbd5e1;">데이터 기록 중...⏳</span>`;
 
-            const now = new Date();
-            const year = String(now.getFullYear()).slice(-2);
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hms = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-            
-            const displayTime = `${year}.${month}.${day} ${hms}`;
-            const sheetTime = hms;
-            
-            const response = await fetchWithRetry(CONFIG.GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'recordAttendance',
-                    type: type,
-                    kakaoId: currentUser.kakaoId,
-                    name: currentUser.name,
-                    phone: currentUser.phone || "",
-                    hospital: currentUser.hospital,
-                    time: sheetTime,
-                    accuracy: Math.round(position.coords.accuracy),
-                    distance: Math.round(distance)
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                document.getElementById('location-status').innerHTML = `✅ ${type} 완료! | 시간: ${displayTime} | 위치:승인`;
+                const now = new Date();
+                const year = String(now.getFullYear()).slice(-2);
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hms = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
                 
-                const checkInBtn = document.getElementById('check-in-btn');
-                const checkOutBtn = document.getElementById('check-out-btn');
+                const displayTime = `${year}.${month}.${day} ${hms}`;
+                const sheetTime = hms;
                 
-                // 화면 즉시 업데이트
-                if (type === '출근') {
-                    document.getElementById('check-in-value').textContent = displayTime;
-                    document.getElementById('check-in-time').style.display = 'block';
-                    document.getElementById('time-display').style.display = 'block';
+                const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'recordAttendance',
+                        type: type,
+                        kakaoId: currentUser.kakaoId,
+                        name: currentUser.name,
+                        phone: currentUser.phone || "",
+                        hospital: currentUser.hospital,
+                        time: sheetTime,
+                        accuracy: Math.round(position.coords.accuracy),
+                        distance: Math.round(distance)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    overlay.style.display = 'none'; // 처리 완료 시 오버레이 숨김
+                    alert(`🎉 ${type} 처리 완료!`);
                     
-                    // 출근 버튼 잠금
-                    checkInBtn.disabled = true;
-                    checkInBtn.style.opacity = '0.5';
-                    checkInBtn.textContent = '출근 완료';
+                    const checkInBtn = document.getElementById('check-in-btn');
+                    const checkOutBtn = document.getElementById('check-out-btn');
                     
-                    // 퇴근 버튼 열기
-                    checkOutBtn.style.display = 'block';
-                    checkOutBtn.disabled = false;
-                    checkOutBtn.style.opacity = '1';
-                    checkOutBtn.textContent = '퇴근하기';
-                    
-                    updateStatus('working');
+                    if (type === '출근') {
+                        document.getElementById('check-in-value').textContent = displayTime;
+                        document.getElementById('check-in-time').style.display = 'block';
+                        document.getElementById('time-display').style.display = 'block';
+                        checkInBtn.disabled = true;
+                        checkInBtn.style.opacity = '0.5';
+                        checkInBtn.textContent = '출근 완료';
+                        checkOutBtn.style.display = 'block';
+                        checkOutBtn.disabled = false;
+                        checkOutBtn.style.opacity = '1';
+                        checkOutBtn.textContent = '퇴근하기';
+                        updateStatus('working');
+                    } else {
+                        document.getElementById('check-out-value').textContent = displayTime;
+                        document.getElementById('check-out-time').style.display = 'block';
+                        checkOutBtn.disabled = true;
+                        checkOutBtn.style.opacity = '0.5';
+                        checkOutBtn.textContent = '퇴근 완료';
+                        updateStatus('completed');
+                    }
                 } else {
-                    document.getElementById('check-out-value').textContent = displayTime;
-                    document.getElementById('check-out-time').style.display = 'block';
-                    
-                    // 퇴근 버튼 잠금
-                    checkOutBtn.disabled = true;
-                    checkOutBtn.style.opacity = '0.5';
-                    checkOutBtn.textContent = '퇴근 완료';
-                    
-                    updateStatus('completed');
+                    throw new Error(result.message);
                 }
             } else {
-                throw new Error(result.message);
+                overlay.style.display = 'none';
+                alert(`❌ 위치 인증 실패\n거리: ${Math.round(distance)}m (허용: ${Math.round(maxAllowedDistance)}m)\n\n⚠️ 병원 내에서 다시 시도.`);
+                document.getElementById(btnId).disabled = false;
             }
-        } else {
-            document.getElementById('location-status').innerHTML = 
-                `❌ 위치인증 실패 | 거리: ${Math.round(distance)}m (허용: ${Math.round(maxAllowedDistance)}m)`;
-            alert(`⚠️ 병원 내에서 다시시도.`);
-            setTimeout(() => { document.getElementById('location-status').style.display = 'none'; }, 5000);
+        } catch (error) {
+            overlay.style.display = 'none';
             document.getElementById(btnId).disabled = false;
+            
+            if (error.code === 1) alert('📍 위치 권한을 허용해주세요.');
+            else if (error.code === 2) alert('📍 스마트폰의 GPS(위치) 기능을 켜주세요.');
+            else if (error.code === 3) alert('📍 실외나 창가로 이동해주세요.');
+            else alert('❌ 서버 오류 - 다시 시도해주세요.');
         }
-    } catch (error) {
-        if (error.code === 1 || error.code === 2 || error.code === 3) {
-            document.getElementById('location-status').innerHTML = '❌ GPS 오류 - 위치기능 켜주세요';
-        } else {
-            document.getElementById('location-status').innerHTML = '❌ 서버 오류 - 다시 시도해주세요';
-        }
-        setTimeout(() => { document.getElementById('location-status').style.display = 'none'; }, 5000);
-        
-        document.getElementById(btnId).disabled = false;
-        
-        if (error.code === 1) alert('📍 위치 권한 허용해주세요');
-        else if (error.code === 2) alert('📍 GPS를 켜주세요');
-        else if (error.code === 3) alert('📍 실외나 창가로 이동해주세요');
     }
-}
     
     // ==================== 위치 관련 함수 ====================
     async function getCurrentPosition() {
@@ -1775,7 +1781,7 @@ let outTime = record.checkOut;
             alert('주민등록번호를 올바르게 입력해주세요.\n(예: 940219-1)'); return;
         }
         if (!startDate || !endDate) {
-            alert('증명서 신청 기간을 선택해주세요.'); return;
+            alert('증명서 신청 기간 선택.'); return;
         }
         if (startDate > endDate) {
             alert('종료일이 시작일보다 빠를 수 없습니다.'); return;
@@ -1798,13 +1804,13 @@ let outTime = record.checkOut;
 
             const result = await response.json();
             if (result.status === 'success') {
-                alert('🎉 수강증명서 PDF가 발급되었습니다!\n[발급 기록 보기]에서 확인하세요.');
+                alert('🎉 수강증명서(PDF) 발급!\n[기록 보기]에서 확인.');
                 closeCertModal();
             } else {
                 alert('❌ 발급 실패: ' + result.message);
             }
         } catch (error) {
-            alert('서버 연결 실패. 잠시 후 다시 시도해주세요.');
+            alert('서버 연결 실패. 잠시 후 다시 시도.');
         } finally {
             btn.disabled = false;
             btn.textContent = '발급하기';
@@ -1827,7 +1833,7 @@ let outTime = record.checkOut;
         document.getElementById('history-modal').style.display = 'none';
     }
 
-    async function fetchHistoryData(type) {
+        async function fetchHistoryData(type) {
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, {
                 method: 'POST',
@@ -1844,13 +1850,21 @@ let outTime = record.checkOut;
                 
                 listDiv.innerHTML = '';
                 result.data.forEach(item => {
+                    // 🔥 핵심: 앱 연결을 피하기 위해 링크 끝부분을 /preview 로 강제 변환
+                    let webLink = item.link;
+                    if(webLink.includes('/edit')) {
+                        webLink = webLink.split('/edit')[0] + '/preview';
+                    } else if (webLink.includes('/view')) {
+                        webLink = webLink.split('/view')[0] + '/preview';
+                    }
+
                     listDiv.innerHTML += `
                         <div class="history-item">
                             <div>
                                 <div style="font-weight: bold; color: #1e293b; margin-bottom: 2px;">${item.date}</div>
-                                <div style="color: #64748b; font-size: 11px;">${item.desc}</div>
+                                <div style="color: #64748b; font-size: 12px;">${item.desc}</div>
                             </div>
-                            <a href="${item.link}" target="_blank" class="history-btn">미리보기</a>
+                            <a href="${webLink}" target="_blank" class="history-btn">미리보기</a>
                         </div>
                     `;
                 });
@@ -1926,6 +1940,12 @@ let outTime = record.checkOut;
             <button class="modal-btn modal-btn-cancel" style="flex: 1;" onclick="closeHistoryModal()">닫기</button>
         </div>
     </div>
+</div>
+
+<!-- 🔥 출근/퇴근 처리 중 오버레이 🔥 -->
+<div class="locked-overlay" id="processing-overlay" style="z-index: 9999; background: rgba(0,0,0,0.85);">
+    <div class="loader" style="display: block; margin-bottom: 20px; border-top-color: #10b981; width: 50px; height: 50px;"></div>
+    <h2 id="processing-text" style="font-size:22px; text-align:center; line-height:1.4; color: white;">처리 중...⏳</h2>
 </div>
     
 </body>
