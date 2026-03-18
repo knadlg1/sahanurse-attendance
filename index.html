@@ -1136,7 +1136,7 @@ async function processAttendance(type) {
         renderIntervalList();
     }
 
-        function renderIntervalList() {
+            function renderIntervalList() {
         const container = document.getElementById('interval-list');
         container.innerHTML = '';
 
@@ -1146,12 +1146,12 @@ async function processAttendance(type) {
         }
 
         currentUser.intervals.forEach(inv => {
-            // 🔥 날짜 텍스트 간소화 (2026-02-06 -> 26-02-06 / 2026-03-07 -> 03-07)
+            // 🔥 날짜 간소화: 2026-02-06 -> 26-02-06 / 2026-03-07 -> 03-07
             const sParts = inv.startDate.split('-'); 
             const eParts = inv.endDate.split('-');   
-            const shortStart = `${sParts[0].substring(2)}-${sParts[1]}-${sParts[2]}`; // 26-02-06
-            const shortEnd = `${eParts[1]}-${eParts[2]}`; // 03-07
-            const displayDate = `${shortStart}~${shortEnd}`;
+            const shortStart = sParts[0].substring(2) + "-" + sParts[1] + "-" + sParts[2]; // 26-02-06
+            const shortEnd = eParts[1] + "-" + eParts[2]; // 03-07
+            const displayDate = shortStart + "~" + shortEnd; // 26-02-06~03-07
 
             let btnHtml = '';
             if (inv.status === 'completed') {
@@ -1162,12 +1162,12 @@ async function processAttendance(type) {
                 btnHtml = `<button class="interval-btn btn-locked" disabled>진행 중</button>`;
             }
 
-            // 🔥 UI 한 줄로 예쁘게 정렬
+            // 🔥 '서명' 단어 삭제 + 한 줄로 예쁘게 정렬
             container.innerHTML += `
-                <div class="interval-card" style="padding: 12px 15px;">
-                    <div class="interval-info" style="flex-direction: row; align-items: center; gap: 8px;">
-                        <span class="interval-round" style="margin:0;">${inv.round}회차</span>
-                        <span class="interval-date" style="font-size: 13px;">${displayDate}</span>
+                <div class="interval-card" style="padding: 12px 15px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 14px; font-weight: bold; color: #6366f1;">${inv.round}회차</span>
+                        <span style="font-size: 14px; color: #1e293b; letter-spacing: -0.5px;">${displayDate}</span>
                     </div>
                     ${btnHtml}
                 </div>
