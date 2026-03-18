@@ -730,6 +730,9 @@ function forceRedirect(url) {
             currentUser.hospital = result.hospital;
             currentUser.hospitalLat = result.hospitalLat;
             currentUser.hospitalLon = result.hospitalLon;
+
+            // 👇👇 새로 추가하는 부분! (서버에서 받은 회차 정보를 폰에 저장)
+            currentUser.intervals = result.intervals;
             
                         localStorage.setItem('currentUser', JSON.stringify(currentUser));
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -791,6 +794,9 @@ function forceRedirect(url) {
                 currentUser.hospital = result.hospital;
                 currentUser.hospitalLat = result.hospitalLat;
                 currentUser.hospitalLon = result.hospitalLon;
+
+                // 👇👇 새로 추가하는 부분! (서버에서 받은 회차 정보를 폰에 저장)
+            currentUser.intervals = result.intervals;
                 
                 sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
                 showLoader(false);
