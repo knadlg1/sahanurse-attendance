@@ -367,6 +367,34 @@
             letter-spacing: -0.5px;
         }
         .btn-history:hover { background: #e2e8f0; }
+
+/* 🔥 대시보드 최근 업데이트 텍스트 */
+.last-updated-text {
+    text-align: right;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 8px;
+    letter-spacing: -0.5px;
+    font-weight: 500;
+}
+
+/* 🔥 예쁜 알약 모양 미리보기 버튼 */
+.history-btn-pill {
+    display: inline-block;
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+}
+.history-btn-pill:active {
+    transform: scale(0.95);
+    background: #c7d2fe;
+}
         
     </style>
 </head>
@@ -417,22 +445,23 @@
             </div>
 
                         <!-- 3. 대시보드 (통계표 단독 배치) -->
-            <div class="dashboard-grid">
-                <table class="stats-table">
-                    <tr>
-                        <th>실습시간</th>
-                        <th>지각</th>
-                        <th>조퇴</th>
-                        <th>외출</th>
-                    </tr>
-                    <tr>
-                        <td id="stat-hours" style="color: #6366f1;">0h / 780h</td>
-                        <td id="stat-tardy">0회</td>
-                        <td id="stat-early">0회</td>
-                        <td id="stat-absent">0회</td>
-                    </tr>
-                </table>
-            </div>
+<div class="dashboard-grid" style="display: block;">
+    <table class="stats-table">
+        <tr>
+            <th>실습시간</th>
+            <th>지각</th>
+            <th>조퇴</th>
+            <th>외출</th>
+        </tr>
+        <tr>
+            <td id="stat-hours" style="color: #6366f1;">0h / 780h</td>
+            <td id="stat-tardy">0회</td>
+            <td id="stat-early">0회</td>
+            <td id="stat-out">0회</td>
+        </tr>
+    </table>
+    <div id="last-updated-time" class="last-updated-text">🕒 최근 업데이트: 정보 불러오는 중...</div>
+</div>
 
             <!-- 4. 서류 및 증명서 버튼 (5:5 배치) -->
             <div class="action-buttons-container">
@@ -522,7 +551,7 @@
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbx6dSZtBhfpv_VUKEmAmMYqhUY7IFsgitJ18SEixhEtI70TDvF7wHCFZssiZ-ir8iErYA/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbzt3NEb6gaLo_-u29dYxxIVKwetn8KE7tDIDbX-JyTvQUe12or8TuH20xMIaHd4Wkx3oQ/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 100, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1676,26 +1705,27 @@ let outTime = record.checkOut;
             }
         });
     }
-    // ==================== 통계 데이터 및 총 기간 불러오기 ====================
-    async function loadStudentStats() {
-        try {
-            const response = await fetchWithRetry(CONFIG.GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'getStudentStats', kakaoId: currentUser.kakaoId })
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                document.getElementById('total-period-display').innerText = result.totalPeriodStr;
-                document.getElementById('stat-hours').innerText = result.totalHours + 'h / 780h';
-                document.getElementById('stat-tardy').innerText = result.tardyCount + '회';
-                document.getElementById('stat-early').innerText = result.earlyCount + '회';
-                document.getElementById('stat-absent').innerText = result.absentCount + '회';
-            }
-        } catch (e) {
-            console.error("통계 로딩 실패", e);
+    // ==================== 통계 데이터 불러오기 (초고속 버전) ====================
+async function loadStudentStats() {
+    try {
+        const response = await fetchWithRetry(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getStudentStats', kakaoId: currentUser.kakaoId })
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            document.getElementById('total-period-display').innerText = result.totalPeriodStr || "-";
+            document.getElementById('stat-hours').innerText = result.totalHours + 'h / 780h';
+            document.getElementById('stat-tardy').innerText = result.tardyCount + '회';
+            document.getElementById('stat-early').innerText = result.earlyCount + '회';
+            document.getElementById('stat-out').innerText = result.outCount + '회'; // 외출
+            document.getElementById('last-updated-time').innerText = '🕒 최근 업데이트: ' + result.lastUpdated;
         }
+    } catch (e) {
+        console.error("통계 로딩 실패", e);
     }
+}
 
     // ==================== 병가 서류 제출 팝업 기능 ====================
     function openSickLeaveModal() {
@@ -1836,48 +1866,46 @@ let outTime = record.checkOut;
         document.getElementById('history-modal').style.display = 'none';
     }
 
-        async function fetchHistoryData(type) {
-        try {
-            const response = await fetchWithRetry(CONFIG.GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'getHistory', kakaoId: currentUser.kakaoId, type: type })
-            });
-            const result = await response.json();
-            const listDiv = document.getElementById('history-list');
-            
-            if (result.status === 'success') {
-                if (result.data.length === 0) {
-                    listDiv.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px;">기록이 없습니다.</div>';
-                    return;
-                }
-                
-                listDiv.innerHTML = '';
-                result.data.forEach(item => {
-                    // 🔥 핵심: 앱 연결을 피하기 위해 링크 끝부분을 /preview 로 강제 변환
-                    let webLink = item.link;
-                    if(webLink.includes('/edit')) {
-                        webLink = webLink.split('/edit')[0] + '/preview';
-                    } else if (webLink.includes('/view')) {
-                        webLink = webLink.split('/view')[0] + '/preview';
-                    }
-
-                    listDiv.innerHTML += `
-                        <div class="history-item">
-                            <div>
-                                <div style="font-weight: bold; color: #1e293b; margin-bottom: 2px;">${item.date}</div>
-                                <div style="color: #64748b; font-size: 12px;">${item.desc}</div>
-                            </div>
-                            <a href="${webLink}" target="_blank" class="history-btn">미리보기</a>
-                        </div>
-                    `;
-                });
-            } else {
-                listDiv.innerHTML = `<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">오류: ${result.message}</div>`;
+        // ==================== 내역 보기 기능 (UI 개선) ====================
+async function fetchHistoryData(type) {
+    try {
+        const response = await fetchWithRetry(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getHistory', kakaoId: currentUser.kakaoId, type: type })
+        });
+        const result = await response.json();
+        const listDiv = document.getElementById('history-list');
+        
+        if (result.status === 'success') {
+            if (result.data.length === 0) {
+                listDiv.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px;">기록이 없습니다.</div>';
+                return;
             }
-        } catch (error) {
-            document.getElementById('history-list').innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">서버 연결에 실패했습니다.</div>';
+            
+            listDiv.innerHTML = '';
+            result.data.forEach(item => {
+                let webLink = item.link;
+                if(webLink.includes('/edit')) webLink = webLink.split('/edit')[0] + '/preview';
+                else if (webLink.includes('/view')) webLink = webLink.split('/view')[0] + '/preview';
+
+                // 🔥 디자인 적용: 플렉스 박스로 정렬 및 예쁜 알약 버튼 클래스 적용
+                listDiv.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding:12px 0;">
+                        <div>
+                            <div style="font-weight: bold; color: #1e293b; margin-bottom: 3px;">${item.date}</div>
+                            <div style="color: #64748b; font-size: 12px;">${item.desc}</div>
+                        </div>
+                        <a href="${webLink}" target="_blank" class="history-btn-pill">미리보기</a>
+                    </div>
+                `;
+            });
+        } else {
+            listDiv.innerHTML = `<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">오류: ${result.message}</div>`;
         }
+    } catch (error) {
+        document.getElementById('history-list').innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">서버 연결에 실패했습니다.</div>';
     }
+}
     
 </script>
 <!-- 🔥 병가 서류 제출 팝업 🔥 -->
