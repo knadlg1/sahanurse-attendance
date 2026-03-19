@@ -395,6 +395,32 @@
     transform: scale(0.95);
     background: #c7d2fe;
 }
+
+/* 아이폰에서 날짜 칸 삐져나가는 현상 완벽 해결 */
+input[type="date"], input[type="file"], input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+}
+/* 원장님 요청 빨간 배너 애니메이션 */
+@keyframes urgentPulse {
+    0% { transform: scale(1); box-shadow: 0 4px 6px rgba(239,68,68,0.3); }
+    50% { transform: scale(1.02); box-shadow: 0 0 15px rgba(239,68,68,0.6); }
+    100% { transform: scale(1); box-shadow: 0 4px 6px rgba(239,68,68,0.3); }
+}
+.urgent-banner {
+    display: none;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    animation: urgentPulse 2s infinite;
+}
         
     </style>
 </head>
@@ -444,7 +470,45 @@
             <div id="total-period-display" style="text-align: center; color: #1e293b; font-size: 14px; font-weight: bold; margin-bottom: 12px; letter-spacing: -0.5px;">
             </div>
 
-                        <!-- 3. 대시보드 (통계표 단독 배치) -->
+            <style>
+/* CSS 추가: 아이폰에서 날짜 칸 삐져나가는 현상 완벽 해결 */
+input[type="date"], input[type="file"], input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+}
+
+/* 원장님 요청 빨간 배너 애니메이션 */
+@keyframes urgentPulse {
+    0% { transform: scale(1); box-shadow: 0 4px 6px rgba(239,68,68,0.3); }
+    50% { transform: scale(1.02); box-shadow: 0 0 15px rgba(239,68,68,0.6); }
+    100% { transform: scale(1); box-shadow: 0 4px 6px rgba(239,68,68,0.3); }
+}
+.urgent-banner {
+    display: none;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    animation: urgentPulse 2s infinite;
+}
+</style>
+
+<!-- 🔥 대시보드 바로 위에 위치할 배너 -->
+<div id="urgent-request-banner" class="urgent-banner" onclick="openProofModal()">
+    🚨 [원장님 요청] <span id="request-type-text">서류</span> 증빙을 제출해주세요! 👆
+</div>
+              
+            <!-- 🔥 대시보드 바로 위에 위치할 빨간 배너 -->
+<div id="urgent-request-banner" class="urgent-banner" onclick="openProofModal()">
+    🚨 [원장님 요청] <span id="request-type-text">서류</span> 증빙을 제출해주세요! 👆
+</div>
+            <!-- 3. 대시보드 (통계표 단독 배치) -->
 <div class="dashboard-grid" style="display: block;">
     <table class="stats-table">
         <tr>
@@ -551,7 +615,7 @@
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbxyR5yicGe8mL51frJ-IX6P5VdMKpz3pyMK5wO6MWkOqCaUKJdGUUp9cWUq23_AgIkYBw/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbxC0v6XHB29UGoGUtSUIlWg9TlsrVhfPSHR29XPHOvmm45N8oOQp-KwDVRukMmmIy86OA/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 100, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1705,7 +1769,12 @@ let outTime = record.checkOut;
             }
         });
     }
-    // ==================== 통계 데이터 불러오기 (초고속 버전) ====================
+
+
+    // 전역 변수 추가 (요청받은 서류 종류 저장용)
+let currentPendingRequest = "";
+
+// ==================== 통계 데이터 불러오기 (초고속 버전 + 배너 추가) ====================
 async function loadStudentStats() {
     try {
         const response = await fetchWithRetry(CONFIG.GAS_URL, {
@@ -1721,76 +1790,114 @@ async function loadStudentStats() {
             document.getElementById('stat-early').innerText = result.earlyCount + '회';
             document.getElementById('stat-out').innerText = result.outCount + '회'; // 외출
             document.getElementById('last-updated-time').innerText = '🕒 최근 업데이트: ' + result.lastUpdated;
+
+            // 🔥 원장님 요청이 있다면 빨간 배너 띄우기!
+            if (result.pendingRequest && result.pendingRequest !== "") {
+                currentPendingRequest = result.pendingRequest;
+                document.getElementById('request-type-text').innerText = currentPendingRequest;
+                document.getElementById('urgent-request-banner').style.display = 'block';
+            } else {
+                document.getElementById('urgent-request-banner').style.display = 'none';
+            }
         }
     } catch (e) {
         console.error("통계 로딩 실패", e);
     }
 }
 
-    // ==================== 병가 서류 제출 팝업 기능 ====================
-    function openSickLeaveModal() {
-        document.getElementById('sick-leave-date').value = '';
-        document.getElementById('sick-leave-files').value = '';
-        document.getElementById('sick-leave-modal').style.display = 'flex';
+// ==================== 출퇴근 시 밀린 서명 독촉 기능 ====================
+function checkMissingSignatures() {
+    if (!currentUser.intervals) return;
+    const hasPendingSig = currentUser.intervals.some(inv => inv.status === 'available');
+    if (hasPendingSig) {
+        alert("🚨 [학원 알림]\n밀린 실습근무카드 서명이 있습니다!\n출퇴근 처리 후 하단에서 반드시 서명을 완료해주세요.");
     }
+}
 
-    function closeSickLeaveModal() {
-        document.getElementById('sick-leave-modal').style.display = 'none';
-    }
+// ==================== 출근 처리 ====================
+async function doCheckIn() {
+    checkMissingSignatures(); // 서명 독촉!
+    await processAttendance('출근');
+}
 
-    async function submitSickLeave() {
-        const dateInput = document.getElementById('sick-leave-date').value;
-        const fileInput = document.getElementById('sick-leave-files');
-        const btn = document.getElementById('sick-submit-btn');
+// ==================== 퇴근 처리 ====================
+async function doCheckOut() {
+    checkMissingSignatures(); // 서명 독촉!
+    await processAttendance('퇴근');
+}
 
-        if (!dateInput) {
-            alert('병가 날짜 선택.'); return;
-        }
-        if (fileInput.files.length === 0) {
-            alert('최소 1장 이상 첨부.'); return;
-        }
+// ==================== 통합 증빙서류 제출 팝업 기능 ====================
+function openSickLeaveModal() {
+    // 버튼을 눌러서 스스로 낼 때
+    document.querySelector('#sick-leave-modal .sig-modal-title').innerText = "🏥 병가/기타 서류 제출";
+    document.getElementById('sick-leave-date').value = '';
+    document.getElementById('sick-leave-files').value = '';
+    document.getElementById('sick-leave-modal').style.display = 'flex';
+}
 
-        btn.disabled = true;
-        btn.textContent = '업로드 중...⏳';
+function openProofModal() {
+    // 빨간 배너를 눌러서 낼 때
+    let type = currentPendingRequest || "증빙 서류";
+    document.querySelector('#sick-leave-modal .sig-modal-title').innerText = `📄 [${type}] 증빙 제출`;
+    document.getElementById('sick-leave-date').value = '';
+    document.getElementById('sick-leave-files').value = '';
+    document.getElementById('sick-leave-modal').style.display = 'flex';
+}
 
-        try {
-            let base64Images = [];
-            for (let i = 0; i < fileInput.files.length; i++) {
-                let file = fileInput.files[i];
-                let base64 = await new Promise((resolve) => {
-                    let reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-                    reader.readAsDataURL(file);
-                });
-                base64Images.push(base64);
-            }
+function closeSickLeaveModal() {
+    document.getElementById('sick-leave-modal').style.display = 'none';
+}
 
-            const response = await fetchWithRetry(CONFIG.GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'uploadSickLeave',
-                    kakaoId: currentUser.kakaoId,
-                    name: currentUser.name,
-                    hospital: currentUser.hospital,
-                    date: dateInput,
-                    images: base64Images
-                })
+async function submitSickLeave() {
+    const dateInput = document.getElementById('sick-leave-date').value;
+    const fileInput = document.getElementById('sick-leave-files');
+    const btn = document.getElementById('sick-submit-btn');
+
+    if (!dateInput) { alert('날짜를 선택해주세요.'); return; }
+    if (fileInput.files.length === 0) { alert('최소 1장 이상 첨부해주세요.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = '업로드 중...⏳';
+
+    try {
+        let base64Images = [];
+        for (let i = 0; i < fileInput.files.length; i++) {
+            let file = fileInput.files[i];
+            let base64 = await new Promise((resolve) => {
+                let reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+                reader.readAsDataURL(file);
             });
-
-            const result = await response.json();
-            if (result.status === 'success') {
-                alert('✅ 병가 서류제출 완료!');
-                closeSickLeaveModal();
-            } else {
-                alert('❌ 제출 실패: ' + result.message);
-            }
-        } catch (error) {
-            alert('서버 오류로 업로드 실패. 다시 시도.');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '서류 제출하기';
+            base64Images.push(base64);
         }
+
+        const response = await fetchWithRetry(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'uploadProofDocument', // 백엔드 함수 이름 변경!
+                kakaoId: currentUser.kakaoId,
+                name: currentUser.name,
+                requestType: currentPendingRequest || "자진제출",
+                date: dateInput,
+                images: base64Images
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === 'success') {
+            alert('✅ 서류 제출이 완료되었습니다!');
+            closeSickLeaveModal();
+            location.reload(); // 원장님 요청 지워진 것 반영하기 위해 새로고침
+        } else {
+            alert('❌ 제출 실패: ' + result.message);
+        }
+    } catch (error) {
+        alert('서버 오류로 업로드 실패. 다시 시도.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '서류 제출하기';
     }
+}
 
     // ==================== 수강증명서 발급 기능 ====================
     function openCertModal() {
