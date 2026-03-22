@@ -688,7 +688,7 @@ input[type="date"], input[type="file"], input[type="text"] {
                 initializeSession();
                 await verifyStudent();
             } else {
-                alert('서버 연결 실패.\n다시 시도해주세요.');
+                alert('서버 연결 실패.\n새로고침 해주세요.');
                 initializeSession();
             }
         }
@@ -947,7 +947,7 @@ function forceRedirect(url) {
     } catch (error) {
         console.error('학생 확인 오류:', error);
         showLoader(false);
-        showError('서버 연결 실패. 다시 시도해주세요.');
+        showError('서버 연결 실패. 새로고침 해주세요.');
     }
 }
     
@@ -1656,7 +1656,7 @@ async function checkTodayStatus() {
             }
         } catch (error) {
             showLoader(false);
-            alert('❌ 서버 연결 실패. 다시 시도.');
+            alert('❌ 서버 연결 실패. 새로고침.');
             btn.disabled = false;
             btn.textContent = '최종 서명 제출하기';
         }
@@ -1707,7 +1707,7 @@ async function checkTodayStatus() {
             }
         } catch (error) {
             showLoader(false);
-            listDiv.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444; font-size:14px;">❌ 서버 연결 실패. 다시 시도.</div>`;
+            listDiv.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444; font-size:14px;">❌ 서버 연결 실패. 새로고침.</div>`;
         }
     }
 
@@ -1953,7 +1953,7 @@ async function submitSickLeave() {
                 alert('❌ 발급 실패: ' + result.message);
             }
         } catch (error) {
-            alert('서버 연결 실패. 잠시 후 다시 시도.');
+            alert('서버 연결 실패. 새로고침.');
         } finally {
             btn.disabled = false;
             btn.textContent = '발급하기';
@@ -2013,7 +2013,7 @@ async function fetchHistoryData(type) {
             listDiv.innerHTML = `<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">오류: ${result.message}</div>`;
         }
     } catch (error) {
-        document.getElementById('history-list').innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">서버 연결에 실패했습니다.</div>';
+        document.getElementById('history-list').innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">서버 연결 실패. 새로고침.</div>';
     }
 }
     
