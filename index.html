@@ -615,7 +615,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbxcca3pDPrKF8u3REtPaFJaCqd-z7jERq3fvdNjKyoiPcxBcXb0dxbDOIqJnQkvU0pPJw/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbzOiOElUrTk7A8ccaq1-j1r9P3NMBFSc-iV142YSqJOMkXWaG3gclByIqjy81KynzgJUw/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 100, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1160,23 +1160,26 @@ async function checkTodayStatus() {
         await processAttendance('퇴근');
     }
     
-        // ==================== 출결 처리 공통 (팝업 오버레이 적용) ====================
+        // ==================== 출결 처리 공통 (팝업 오버레이 즉시 적용) ====================
     async function processAttendance(type) {
-        await verifyStudent();
-        
-        if (remainingTime <= 0) {
-            alert('세션 만료. 새로고침 해주세요.');
-            return;
-        }
-        
+        // 🔥 1. 누르자마자 즉시 버튼을 잠그고 검은 화면(오버레이)부터 띄웁니다!
         const btnId = `check-${type === '출근' ? 'in' : 'out'}-btn`;
         document.getElementById(btnId).disabled = true;
         
-        // 🔥 화면 어두워지며 처리 중 팝업 띄우기
         const overlay = document.getElementById('processing-overlay');
         const overlayText = document.getElementById('processing-text');
         overlay.style.display = 'flex';
-        overlayText.innerHTML = `📍 위치 확인 중...<br><span style="font-size:14px; font-weight:normal; margin-top:10px; display:block; color:#cbd5e1;">(잠시만 기다려주세요)</span>`;
+        overlayText.innerHTML = `📍 위치 확인 및 인증 중...<br><span style="font-size:14px; font-weight:normal; margin-top:10px; display:block; color:#cbd5e1;">(잠시만 기다려주세요)</span>`;
+
+        // 🔥 2. 화면이 뜬 상태에서 백그라운드 서버 통신(학생 인증) 시작
+        await verifyStudent();
+        
+        if (remainingTime <= 0) {
+            overlay.style.display = 'none';
+            alert('세션 만료. 새로고침 해주세요.');
+            document.getElementById(btnId).disabled = false;
+            return;
+        }
         
         try {
             const position = await getCurrentPosition();
