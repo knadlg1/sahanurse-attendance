@@ -421,10 +421,41 @@ input[type="date"], input[type="file"], input[type="text"] {
     cursor: pointer;
     animation: urgentPulse 2s infinite;
 }
+
+            /* 🔥 원장님 전용 애플 스타일 다크모드 🔥 */
+    #admin-section { display: none; background: #000; color: #fff; min-height: 100vh; padding: 30px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .ios-header { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 30px; text-align: left; }
+    .ios-card { background: #1c1c1e; border-radius: 20px; padding: 25px 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .ios-label { font-size: 13px; color: #8e8e93; margin-bottom: 10px; display: block; font-weight: 600; }
+    .ios-select { width: 100%; background: #2c2c2e; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; margin-bottom: 25px; appearance: none; font-weight: 500; outline: none; }
+    .ios-btn { width: 100%; background: #0a84ff; color: #fff; border: none; padding: 18px; border-radius: 14px; font-size: 17px; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.4); }
+    .ios-btn:active { transform: scale(0.97); opacity: 0.8; }
         
     </style>
 </head>
 <body>
+
+    <!-- 🔥 원장님 전용 관리 데스크 (평소엔 숨겨짐) 🔥 -->
+<div id="admin-section">
+    <div class="ios-header"> CMS Administrator</div>
+    <div class="ios-card">
+        <label class="ios-label">1. 학생 선택</label>
+        <select id="admin-student-select" class="ios-select">
+            <option value="">데이터를 불러오는 중...</option>
+        </select>
+        
+        <label class="ios-label">2. 요청할 서류</label>
+        <select id="admin-doc-select" class="ios-select">
+            <option value="A 서류">A 서류</option>
+            <option value="B 서류">B 서류</option>
+            <option value="C 서류">C 서류</option>
+        </select>
+
+        <button class="ios-btn" id="admin-submit-btn" onclick="sendAdminRequest()">해당 학생에게 서류 요청하기</button>
+    </div>
+    <p style="text-align:center; color:#8e8e93; font-size:13px; line-height: 1.5; margin-top: 30px;">요청을 보내면 해당 학생의 출퇴근 앱에<br>즉시 빨간색 알림 배너가 나타납니다.</p>
+</div>
+    
     <!-- 선생님에게 건네줄 때 뜨는 오버레이 화면 (터치 방식) -->
 <div class="locked-overlay" id="handover-overlay" onclick="startManagerMode()">
     <h2 style="font-size:24px; text-align:center; line-height:1.4; margin-bottom:10px;">📱 담당 선생님<br>서명 받기!</h2>
@@ -615,7 +646,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbzOiOElUrTk7A8ccaq1-j1r9P3NMBFSc-iV142YSqJOMkXWaG3gclByIqjy81KynzgJUw/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbxktsLoMlH3oUtiA7OMUK2AjaXmchiNWFCP2MkUDeXWpgjQ8gHqckXB41JCNEiWsM9P9g/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 100, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -912,22 +943,29 @@ function forceRedirect(url) {
         
         console.log('학생 확인 결과:', result); // 디버깅용
         
-        if (result.status === 'found') {
-            // 등록된 학생
+                if (result.status === 'found') {
+            // 등록된 사람 정보 저장
             currentUser.name = result.name;
-            currentUser.phone = result.phone;  // 전화번호 추가!
+            currentUser.phone = result.phone;  
             currentUser.hospital = result.hospital;
             currentUser.hospitalLat = result.hospitalLat;
             currentUser.hospitalLon = result.hospitalLon;
-
-            // 👇👇 새로 추가하는 부분! (서버에서 받은 회차 정보를 폰에 저장)
             currentUser.intervals = result.intervals;
             
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            // 🔥 핵심! 서버에서 받아온 역할(원장님/학생)을 폰에 저장
+            currentUser.role = result.role; 
+            
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
             showLoader(false);
-            showMainSection();
-            checkTodayStatus();
+
+            // 🔥 원장님인지 학생인지에 따라 화면 분리!
+            if (currentUser.role === 'admin') {
+                showAdminSection();  // 원장님이면 블랙 데스크로 이동!
+            } else {
+                showMainSection();   // 일반 학생이면 평소처럼 출결 화면으로 이동!
+                checkTodayStatus();
+            }
             
         } else if (result.status === 'not_found') {
             // 미등록 학생
@@ -2016,6 +2054,68 @@ async function fetchHistoryData(type) {
         document.getElementById('history-list').innerHTML = '<div style="text-align: center; color: #ef4444; font-size: 13px; padding: 20px;">서버 연결 실패. 새로고침.</div>';
     }
 }
+
+    // ==================== 🔥 원장님 전용 스크립트 🔥 ====================
+    async function showAdminSection() {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('main-section').style.display = 'none';
+        document.getElementById('admin-section').style.display = 'block';
+        document.body.style.background = '#000'; // 배경을 완전히 까맣게
+
+        try {
+            const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'getStudentList' })
+            });
+            const data = await response.json();
+            const select = document.getElementById('admin-student-select');
+            
+            if (data.status === 'success') {
+                select.innerHTML = '<option value="">학생을 선택해주세요</option>';
+                data.students.forEach(s => {
+                    select.innerHTML += `<option value="${s.kakaoId}">${s.name}</option>`;
+                });
+            } else {
+                select.innerHTML = '<option value="">명단 불러오기 실패</option>';
+            }
+        } catch(e) {
+            console.error('명단 에러', e);
+        }
+    }
+
+    async function sendAdminRequest() {
+        const studentId = document.getElementById('admin-student-select').value;
+        const docType = document.getElementById('admin-doc-select').value;
+        const btn = document.getElementById('admin-submit-btn');
+
+        if(!studentId) { alert('학생을 먼저 선택해주세요.'); return; }
+
+        btn.disabled = true;
+        btn.textContent = '요청 보내는 중... ⏳';
+
+        try {
+            const response = await fetchWithRetry(CONFIG.GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'sendDocumentRequest',
+                    targetKakaoId: studentId,
+                    docType: docType
+                })
+            });
+            const data = await response.json();
+            
+            if(data.status === 'success') {
+                alert(`✅ [${docType}] 제출 요청이 전송되었습니다!\n해당 학생의 폰에 빨간색 알림이 뜹니다.`);
+            } else {
+                alert('오류 발생: ' + data.message);
+            }
+        } catch(e) {
+            alert('서버 연결 실패');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '해당 학생에게 서류 요청하기';
+        }
+    }
     
 </script>
 <!-- 🔥 병가 서류 제출 팝업 🔥 -->
