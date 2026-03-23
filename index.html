@@ -422,14 +422,74 @@ input[type="date"], input[type="file"], input[type="text"] {
     animation: urgentPulse 2s infinite;
 }
 
-            /* 🔥 원장님 전용 애플 스타일 다크모드 🔥 */
-    #admin-section { display: none; background: #000; color: #fff; min-height: 100vh; padding: 30px 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    .ios-header { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 30px; text-align: left; }
-    .ios-card { background: #1c1c1e; border-radius: 20px; padding: 25px 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .ios-label { font-size: 13px; color: #8e8e93; margin-bottom: 10px; display: block; font-weight: 600; }
-    .ios-select { width: 100%; background: #2c2c2e; color: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; margin-bottom: 25px; appearance: none; font-weight: 500; outline: none; }
-    .ios-btn { width: 100%; background: #0a84ff; color: #fff; border: none; padding: 18px; border-radius: 14px; font-size: 17px; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.4); }
-    .ios-btn:active { transform: scale(0.97); opacity: 0.8; }
+                /* 🔥 원장님 전용 애플 스타일 다크모드 (완벽 수정본) 🔥 */
+    #admin-section {
+        display: none;
+        position: fixed; /* 💡 기존 학원 앱 뼈대와 상관없이 화면 맨 위를 완벽히 덮음 */
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100vh;
+        background-color: #000000; /* 완벽한 리얼 블랙 */
+        color: #ffffff;
+        z-index: 999999; /* 제일 최상단에 띄움 */
+        padding: 50px 20px 20px 20px;
+        box-sizing: border-box; /* 화면 밖으로 삐져나감 절대 방지 */
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+        overflow-y: auto;
+    }
+    .ios-header {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        margin-bottom: 30px;
+        color: #ffffff;
+    }
+    .ios-card {
+        background: #1c1c1e; /* 애플 다크모드 전용 카드 색상 */
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        width: 100%;
+    }
+    .ios-label {
+        font-size: 12px;
+        color: #8e8e93;
+        margin-bottom: 8px;
+        display: block;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .ios-select {
+        width: 100%;
+        background: #2c2c2e;
+        color: #ffffff;
+        border: none;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-bottom: 25px;
+        outline: none;
+        box-sizing: border-box; /* 박스 폭발 방지 */
+        -webkit-appearance: none; /* 못생긴 기본 화살표 디자인 제거 */
+        appearance: none;
+    }
+    .ios-btn {
+        width: 100%;
+        background: #0a84ff; /* 애플 블루 포인트 컬러 */
+        color: #ffffff;
+        border: none;
+        padding: 16px;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 600;
+        cursor: pointer;
+        box-sizing: border-box;
+        margin-top: 10px;
+    }
+    .ios-btn:active {
+        opacity: 0.7; /* 눌렀을 때 살짝 투명해지는 효과 */
+    }
         
     </style>
 </head>
