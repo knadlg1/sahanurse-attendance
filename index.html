@@ -708,7 +708,7 @@ input[type="date"], input[type="file"], input[type="text"] {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
         GAS_URL: 'https://script.google.com/macros/s/AKfycbzQe_d2YNmNq3BTwXfCQL4B-J-48Af_ajoZsTtcFAkTaZRsDU9H5B_PXjYo4Gk4SxnTcw/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
-        MAX_DISTANCE: 100, // 미터
+        MAX_DISTANCE: 20, // 미터
         GPS_TIMEOUT: 20000, // 20초
         GPS_MAX_AGE: 0
     };
@@ -1286,7 +1286,7 @@ async function checkTodayStatus() {
                 currentUser.hospitalLat, currentUser.hospitalLon
             );
             
-            const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 50);
+            const maxAllowedDistance = CONFIG.MAX_DISTANCE + Math.min(position.coords.accuracy, 100);
             
             if (distance <= maxAllowedDistance) {
                 overlayText.innerHTML = `✅ 위치 인증 완료!<br><span style="font-size:14px; font-weight:normal; margin-top:10px; display:block; color:#cbd5e1;">데이터 기록 중...⏳</span>`;
