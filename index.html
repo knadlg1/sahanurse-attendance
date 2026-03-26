@@ -706,7 +706,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbzQe_d2YNmNq3BTwXfCQL4B-J-48Af_ajoZsTtcFAkTaZRsDU9H5B_PXjYo4Gk4SxnTcw/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbwLsaiHJnkcBnyD31bwLCRVj5Ht8d4bLV9EVGSDPS_yV_9SMYCt7vqObn1p_K2Ulwh8Kw/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 20, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1163,88 +1163,225 @@ function forceRedirect(url) {
 }
     
 
-    // ==================== 오늘 출결 상태 확인 ====================
-// ==================== 오늘 출결 상태 확인 ====================
-// ==================== 오늘 출결 상태 확인 ====================
+// 🔥 [수정됨] 출결 상태 확인 (누락 데이터 스캔 기능 포함)
 async function checkTodayStatus() {
-    console.log('출결 상태 확인 시작 (서버 데이터만 사용)');
-
+    console.log('출결 상태 확인 시작');
     const savedUser = sessionStorage.getItem('currentUser');
     if (savedUser) currentUser = JSON.parse(savedUser);
-    
-    if (!currentUser.hospitalLat || !currentUser.hospitalLon) {
-        await verifyStudent();
-    }
     
     try {
         const response = await fetchWithRetry(CONFIG.GAS_URL, {
             method: 'POST',
-            body: JSON.stringify({
-                action: 'getTodayStatus',
-                kakaoId: currentUser.kakaoId
-            })
+            body: JSON.stringify({ action: 'getTodayStatus', kakaoId: currentUser.kakaoId })
         });
         
         const result = await response.json();
-        console.log('서버에서 가져온 오늘 데이터:', result);
         showLoader(false);
         
         const checkInBtn = document.getElementById('check-in-btn');
         const checkOutBtn = document.getElementById('check-out-btn');
         
-        if (result.status === 'success' || result.checkIn !== undefined) {
-            if (result.checkIn && result.checkIn !== "") {
-                // ✅ 1. 출근 기록이 있을 때
-                document.getElementById('check-in-value').textContent = result.checkIn;
-                document.getElementById('check-in-time').style.display = 'block';
-                document.getElementById('time-display').style.display = 'block';
-                
-                // 출근 버튼 완벽 차단 및 텍스트 변경
-                checkInBtn.style.display = 'block';
-                checkInBtn.disabled = true;
-                checkInBtn.style.opacity = '0.5';
-                checkInBtn.textContent = '출근 완료'; 
-                
-                if (result.checkOut && result.checkOut !== "") {
-                    // ✅ 2. 퇴근 기록까지 있을 때 (완전 종료)
-                    document.getElementById('check-out-value').textContent = result.checkOut;
-                    document.getElementById('check-out-time').style.display = 'block';
-                    
-                    // 퇴근 버튼 완벽 차단 및 텍스트 변경
-                    checkOutBtn.style.display = 'block';
-                    checkOutBtn.disabled = true;
-                    checkOutBtn.style.opacity = '0.5';
-                    checkOutBtn.textContent = '퇴근 완료';
-                    
-                    updateStatus('completed');
-                } else {
-                    // ✅ 3. 출근만 하고 퇴근 전일 때 (퇴근 버튼 활성화)
+        // 🚨 1. 누락된 기록이 발견되었을 때!
+        if (result.missingRecord) {
+            window.currentMissingRecord = result.missingRecord; // 전역 변수 저장
+            
+            // 팝업 띄우고 텍스트 변경
+            document.getElementById('missing-alert-text').innerText = `${result.missingRecord.date} 의 [${result.missingRecord.type}] 누락`;
+            document.getElementById('missing-alert-modal').style.display = 'flex';
+            
+            // 퇴근 버튼은 강제로 잠금 (제출해야 풀림)
+            checkOutBtn.style.display = 'block';
+            checkOutBtn.disabled = true;
+            checkOutBtn.style.opacity = '0.5';
+            checkOutBtn.textContent = '🔒 누락 서류 제출 필요';
+        }
+
+        // 2. 평소 출퇴근 버튼 로직 (기존과 동일)
+        if (result.checkIn && result.checkIn !== "") {
+            document.getElementById('check-in-value').textContent = result.checkIn;
+            document.getElementById('check-in-time').style.display = 'block';
+            document.getElementById('time-display').style.display = 'block';
+            
+            checkInBtn.style.display = 'block';
+            checkInBtn.disabled = true;
+            checkInBtn.style.opacity = '0.5';
+            checkInBtn.textContent = '출근 완료'; 
+            
+            if (result.checkOut && result.checkOut !== "") {
+                document.getElementById('check-out-value').textContent = result.checkOut;
+                document.getElementById('check-out-time').style.display = 'block';
+                checkOutBtn.style.display = 'block';
+                checkOutBtn.disabled = true;
+                checkOutBtn.style.opacity = '0.5';
+                checkOutBtn.textContent = '퇴근 완료';
+                updateStatus('completed');
+            } else {
+                if (!result.missingRecord) { // 누락이 없을 때만 퇴근 활성화
                     checkOutBtn.style.display = 'block';
                     checkOutBtn.disabled = false;
                     checkOutBtn.style.opacity = '1';
                     checkOutBtn.textContent = '퇴근하기';
-                    updateStatus('working');
                 }
-            } else {
-                // ✅ 4. 출근 기록 자체가 없을 때 (초기 상태)
-                checkInBtn.style.display = 'block';
-                checkInBtn.disabled = false;
-                checkInBtn.style.opacity = '1';
-                checkInBtn.textContent = '출근하기';
-                
+                updateStatus('working');
+            }
+        } else {
+            checkInBtn.style.display = 'block';
+            checkInBtn.disabled = false;
+            checkInBtn.style.opacity = '1';
+            checkInBtn.textContent = '출근하기';
+            if (!result.missingRecord) {
                 checkOutBtn.style.display = 'none';
                 checkOutBtn.disabled = true;
-                updateStatus('waiting');
             }
+            updateStatus('waiting');
         }
     } catch (error) {
         console.error('상태 확인 오류:', error);
         showLoader(false);
-        updateStatus('waiting');
-        document.getElementById('check-in-btn').style.display = 'block';
-        document.getElementById('check-in-btn').disabled = false;
-        document.getElementById('check-out-btn').style.display = 'none';
     }
+}
+
+// 🔥 [추가] 캔버스 지우기 공통 함수
+function clearCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// 🔥 [추가] 누락 서명 흐름 제어 함수들
+function openMissingStudentSig() {
+    document.getElementById('missing-alert-modal').style.display = 'none';
+    document.getElementById('missing-student-sig-modal').style.display = 'flex';
+    setupCanvas('missing-student-canvas');
+}
+
+function showMissingHandover() {
+    const canvas = document.getElementById('missing-student-canvas');
+    if (isBlankCanvas(canvas)) { alert('서명을 입력해주세요.'); return; }
+    document.getElementById('missing-student-sig-modal').style.display = 'none';
+    document.getElementById('missing-handover-overlay').style.display = 'flex';
+}
+
+function openMissingManagerSig() {
+    document.getElementById('missing-handover-overlay').style.display = 'none';
+    document.getElementById('missing-manager-sig-modal').style.display = 'flex';
+    setupCanvas('missing-manager-canvas');
+    
+    // 시스템이 알아서 출/퇴근 드롭다운 칸을 보여주거나 숨김
+    const type = window.currentMissingRecord.type;
+    document.getElementById('missing-in-time-box').style.display = (type === '출근' || type === '출,퇴근') ? 'block' : 'none';
+    document.getElementById('missing-out-time-box').style.display = (type === '퇴근' || type === '출,퇴근') ? 'block' : 'none';
+    
+    // 드롭다운 옵션 채우기
+    generateTimeDropdowns('in-time-dropdowns', 'missing-in-h', 'missing-in-m');
+    generateTimeDropdowns('out-time-dropdowns', 'missing-out-h', 'missing-out-m');
+}
+
+function generateTimeDropdowns(containerId, hId, mId) {
+    let hOptions = ''; let mOptions = '';
+    for(let i=6; i<=22; i++) hOptions += `<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}시</option>`;
+    for(let i=0; i<=50; i+=10) mOptions += `<option value="${i.toString().padStart(2,'0')}">${i.toString().padStart(2,'0')}분</option>`;
+    
+    document.getElementById(containerId).innerHTML = `
+        <select id="${hId}" class="time-select">${hOptions}</select>
+        <select id="${mId}" class="time-select">${mOptions}</select>
+    `;
+}
+
+function isBlankCanvas(canvas) {
+    const ctx = canvas.getContext('2d');
+    return !ctx.getImageData(0,0,canvas.width,canvas.height).data.some(channel => channel !== 0);
+}
+
+function setupCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if(canvas.dataset.setup === 'true') return;
+    canvas.dataset.setup = 'true';
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth || 300; canvas.height = canvas.offsetHeight || 150;
+    ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a';
+    
+    let isDrawing = false;
+    const start = (e) => { isDrawing = true; draw(e); };
+    const draw = (e) => {
+        if (!isDrawing) return; e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
+    };
+    const stop = () => { isDrawing = false; ctx.beginPath(); };
+    
+    canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseout', stop);
+    canvas.addEventListener('touchstart', start, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', stop);
+}
+
+// 🔥 [추가] 휴가/기타 원터치 즉시 제출
+async function submitMissingVacation() {
+    if(!confirm("해당 날짜를 [휴가/기타] 로 처리하시겠습니까?\n즉시 퇴근 버튼 잠금이 해제됩니다.")) return;
+    
+    showLoader(true);
+    try {
+        const res = await fetchWithRetry(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'submitMissingVacation',
+                kakaoId: currentUser.kakaoId,
+                row: window.currentMissingRecord.row
+            })
+        });
+        showLoader(false);
+        alert('✅ 처리 완료! 이제 오늘의 퇴근하기가 가능합니다.');
+        location.reload();
+    } catch (e) { alert('오류 발생'); showLoader(false); }
+}
+
+// 🔥 [추가] 출퇴확인서 최종 제출 (문서 생성)
+async function submitMissingSignature() {
+    const managerCanvas = document.getElementById('missing-manager-canvas');
+    if (isBlankCanvas(managerCanvas)) { alert('담당자 서명을 입력해주세요.'); return; }
+    
+    const type = window.currentMissingRecord.type;
+    let inTime = "-"; let outTime = "-";
+    
+    if (type === '출근' || type === '출,퇴근') {
+        inTime = document.getElementById('missing-in-h').value + ":" + document.getElementById('missing-in-m').value;
+    }
+    if (type === '퇴근' || type === '출,퇴근') {
+        outTime = document.getElementById('missing-out-h').value + ":" + document.getElementById('missing-out-m').value;
+    }
+    
+    const btn = document.getElementById('missing-final-btn');
+    btn.disabled = true; btn.textContent = '문서 생성 중... ⏳';
+    showLoader(true);
+
+    try {
+        const res = await fetchWithRetry(CONFIG.GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'submitMissingAttendance',
+                kakaoId: currentUser.kakaoId,
+                name: currentUser.name,
+                missingDate: window.currentMissingRecord.date,
+                missingType: type,
+                row: window.currentMissingRecord.row,
+                inTime: inTime,
+                outTime: outTime,
+                studentSig: document.getElementById('missing-student-canvas').toDataURL('image/png').split(',')[1],
+                managerSig: managerCanvas.toDataURL('image/png').split(',')[1]
+            })
+        });
+        const result = await res.json();
+        showLoader(false);
+        if(result.status === 'success') {
+            alert('🎉 서류 제출이 완료되었습니다!\n오늘의 퇴근하기가 가능합니다.');
+            location.reload();
+        } else { alert('❌ 실패: ' + result.message); }
+    } catch (e) { alert('서버 오류'); showLoader(false); }
+    
+    btn.disabled = false; btn.textContent = '최종 제출하기';
 }
 
 
@@ -2247,6 +2384,76 @@ async function fetchHistoryData(type) {
 <div class="locked-overlay" id="processing-overlay" style="z-index: 9999; background: rgba(0,0,0,0.85);">
     <div class="loader" style="display: block; margin-bottom: 20px; border-top-color: #10b981; width: 50px; height: 50px;"></div>
     <h2 id="processing-text" style="font-size:22px; text-align:center; line-height:1.4; color: white;">처리 중...⏳</h2>
+</div>
+
+<!-- 🔥 [추가] 출퇴근 누락 알림 및 서명 UI 🔥 -->
+<style>
+    /* 누락 팝업 전용 스타일 */
+    .missing-box { background: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+    .missing-title { color: #dc2626; font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+    .missing-date-text { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+    .missing-btn-a { background: #10b981; color: white; margin-bottom: 8px; }
+    .missing-btn-b { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+    
+    .time-select-group { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 15px; }
+    .time-select { padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 16px; background: white; outline: none; }
+</style>
+
+<!-- 1. 학생: 처음 마주하는 고정 팝업 -->
+<div class="sig-modal-overlay" id="missing-alert-modal" style="z-index: 4000;">
+    <div class="sig-modal-card">
+        <div class="missing-box">
+            <div class="missing-title">🚨 출퇴근 기록 누락 발생!</div>
+            <div class="missing-date-text" id="missing-alert-text">2026-04-15의 [퇴근] 누락</div>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">해당 사유를 선택하거나 담당자 서명을 받아야<br>오늘의 [퇴근] 버튼이 활성화됩니다.</p>
+            
+            <button class="btn missing-btn-a" onclick="openMissingStudentSig()">출,퇴 깜빡했어요 (담당자 서명 필요)</button>
+            <button class="btn missing-btn-b" onclick="submitMissingVacation()">휴가 / 기타 사유 (즉시 제출)</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 학생: 본인 서명 팝업 -->
+<div class="sig-modal-overlay" id="missing-student-sig-modal" style="z-index: 4001;">
+    <div class="sig-modal-card">
+        <div class="sig-modal-title">📝 학생 서명 (누락 서류)</div>
+        <p style="text-align: center; font-size: 13px; color: #64748b; margin-bottom: 10px;">본인 서명 후 담당자에게 폰을 넘겨주세요.</p>
+        <canvas id="missing-student-canvas" class="modal-canvas"></canvas>
+        <div style="text-align: right; margin-top: 5px;">
+            <button onclick="clearCanvas('missing-student-canvas')" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">[지우기]</button>
+        </div>
+        <button class="btn" style="background: #0f172a; color: white; margin-top: 15px;" onclick="showMissingHandover()">서명 완료 👉 담당자에게 넘기기</button>
+    </div>
+</div>
+
+<!-- 3. 화면 전환 오버레이 -->
+<div class="locked-overlay" id="missing-handover-overlay" onclick="openMissingManagerSig()" style="z-index: 4002;">
+    <h2 style="font-size:24px; text-align:center; line-height:1.4; margin-bottom:10px;">📱 담당 선생님<br>서명 받기!</h2>
+    <p style="color:#cbd5e1; font-size:14px; text-align:center;">선생님 서명 모드로 전환됩니다.</p>
+    <div class="touch-start-btn">👆 터치해서 시작하기</div>
+</div>
+
+<!-- 4. 담당자(선생님): 시간 선택 및 서명 팝업 -->
+<div class="sig-modal-overlay" id="missing-manager-sig-modal" style="z-index: 4003;">
+    <div class="sig-modal-card">
+        <div class="sig-modal-title">👨‍🏫 담당자 확인 및 서명</div>
+        
+        <!-- 동적으로 보일 시간 선택 칸 -->
+        <div id="missing-in-time-box" style="display: none; text-align: center;">
+            <label style="font-size: 12px; font-weight: bold; color: #3b82f6;">출근 시간 선택</label>
+            <div class="time-select-group" id="in-time-dropdowns"></div>
+        </div>
+        <div id="missing-out-time-box" style="display: none; text-align: center;">
+            <label style="font-size: 12px; font-weight: bold; color: #ef4444;">퇴근 시간 선택</label>
+            <div class="time-select-group" id="out-time-dropdowns"></div>
+        </div>
+
+        <canvas id="missing-manager-canvas" class="modal-canvas" style="margin-top: 10px;"></canvas>
+        <div style="text-align: right; margin-top: 5px;">
+            <button onclick="clearCanvas('missing-manager-canvas')" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">[지우기]</button>
+        </div>
+        <button class="btn" id="missing-final-btn" style="background: #3b82f6; color: white; margin-top: 15px;" onclick="submitMissingSignature()">최종 제출하기</button>
+    </div>
 </div>
     
 </body>
