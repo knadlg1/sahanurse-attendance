@@ -673,8 +673,8 @@ input[type="date"], input[type="file"], input[type="text"] {
 
             <div class="record-list" id="record-list"></div>
 
-            <button class="btn" id="mode-switch-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-top: 10px;" onclick="showHandoverOverlay()">
-                학생 서명완료 👉 선생님 서명받기
+                        <button class="btn" id="mode-switch-btn" style="display: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; margin-top: 10px;" onclick="showHandoverOverlay()">
+                학생 서명완료 👉 담당자 서명받기
             </button>
             <button class="btn" id="final-submit-btn" style="background: #0f172a; color: white; margin-top: 10px; display: none;" onclick="submitFinalSignature()">
                 최종 서명 제출하기
@@ -1992,9 +1992,8 @@ function applyTodayStatus(result) {
         document.getElementById('final-submit-btn').style.display = 'block';
     }
 
-       // ==================== 🔥 진짜 데이터 연동 (서명 UI 열기 & 데이터 불러오기) 🔥 ====================
-        async function openSignatureUI(startDate, endDate, intervalStr) {
-        currentInterval = { startDate, endDate, intervalStr }; // 현재 회차 저장
+               async function openSignatureUI(startDate, endDate, intervalStr) {
+        currentInterval = { startDate, endDate, intervalStr }; 
 
         document.querySelector('h1').style.display = 'none';
         document.getElementById('main-subtitle').style.display = 'none';
@@ -2002,6 +2001,11 @@ function applyTodayStatus(result) {
         
         document.getElementById('signature-section').style.display = 'block';
         document.body.setAttribute('data-mode', 'student');
+        
+        // 🔥 추가된 부분: 로딩을 시작할 때 버튼 2개를 무조건 숨김!
+        document.getElementById('mode-switch-btn').style.display = 'none';
+        document.getElementById('final-submit-btn').style.display = 'none';
+        
         initModalCanvas();
 
         showLoader(true);
@@ -2014,8 +2018,8 @@ function applyTodayStatus(result) {
                 body: JSON.stringify({
                     action: 'getMonthlyRecords', 
                     kakaoId: currentUser.kakaoId,
-                    targetStartDate: startDate, // 선택한 기간 전달
-                    targetEndDate: endDate      // 선택한 기간 전달
+                    targetStartDate: startDate, 
+                    targetEndDate: endDate      
                 })
             });
             
@@ -2093,6 +2097,8 @@ let outTime = record.checkOut;
                 `;
             }
         });
+        // 🔥 새로 추가할 부분: 화면에 기록을 다 그리고 나면, 그때서야 학생 서명 버튼을 보여줌!
+        document.getElementById('mode-switch-btn').style.display = 'block';
     }
 
 
