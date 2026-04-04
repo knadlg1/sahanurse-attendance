@@ -595,10 +595,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     🚨 [원장님 요청] <span id="request-type-text">서류</span> 증빙을 제출해주세요! 👆
 </div>
               
-            <!-- 🔥 대시보드 바로 위에 위치할 빨간 배너 -->
-<div id="urgent-request-banner" class="urgent-banner" onclick="openProofModal()">
-    🚨 [원장님 요청] <span id="request-type-text">서류</span> 증빙을 제출해주세요! 👆
-</div>
+
             <!-- 3. 대시보드 (통계표 단독 배치) -->
 <div class="dashboard-grid" style="display: block;">
     <table class="stats-table">
@@ -644,6 +641,11 @@ input[type="date"], input[type="file"], input[type="text"] {
                     </div>
                 </div>
             </div>
+
+            <!-- 🔥 출퇴근 버튼 바로 위에 위치할 얌전한 빨간 누락 배너! -->
+<div id="missing-banner" style="display: none; background: #fee2e2; border: 1px solid #ef4444; color: #dc2626; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 10px; cursor: pointer; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);" onclick="document.getElementById('missing-alert-modal').style.display='flex'">
+    <span id="missing-banner-text">🚨 누락 기록이 있습니다 (눌러서 서명)</span>
+</div>
             
             <button class="btn check-in-btn" id="check-in-btn" onclick="doCheckIn()" style="display: none;" disabled>
                 출근하기
@@ -706,7 +708,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbwPQTXcBaxmfJ55KVSNwR-_GEKUuNxCQM3xPIMzOFU2IsLLGEt67CMEE9oRxwJyU6eabA/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbzGaQEBh27w1kQ_nlDAVRq9VI9cKJnL-rYoOBrGAwYK_sB4jV98YAQwgztwDPDNxspgMA/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 30, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1622,12 +1624,13 @@ function applyTodayStatus(result) {
     if (result.missingRecord) {
         window.currentMissingRecord = result.missingRecord;
         document.getElementById('missing-alert-text').innerText = `${result.missingRecord.date} 의 [${result.missingRecord.type}] 누락`;
-        document.getElementById('missing-alert-modal').style.display = 'flex';
-
-        checkOutBtn.style.display = 'block';
-        checkOutBtn.disabled = true;
-        checkOutBtn.style.opacity = '0.5';
-        checkOutBtn.textContent = '🔒 누락 서류 제출 필요';
+        
+        // 🔥 출근/퇴근 버튼 위에 있는 얌전한 '빨간 배너'만 보이게 켬!
+        document.getElementById('missing-banner').style.display = 'block';
+        document.getElementById('missing-banner-text').innerText = `🚨 [${result.missingRecord.date}] ${result.missingRecord.type} 누락 (눌러서 서명)`;
+    } else {
+        var banner = document.getElementById('missing-banner');
+        if (banner) banner.style.display = 'none';
     }
 
     if (result.checkIn && result.checkIn !== "") {
@@ -1650,24 +1653,22 @@ function applyTodayStatus(result) {
             checkOutBtn.textContent = '퇴근 완료';
             updateStatus('completed');
         } else {
-            if (!result.missingRecord) {
-                checkOutBtn.style.display = 'block';
-                checkOutBtn.disabled = false;
-                checkOutBtn.style.opacity = '1';
-                checkOutBtn.textContent = '퇴근하기';
-            }
+            // 🔥 누락 기록이 있든 없든, 무조건 퇴근 버튼을 활성화합니다!
+            checkOutBtn.style.display = 'block';
+            checkOutBtn.disabled = false;
+            checkOutBtn.style.opacity = '1';
+            checkOutBtn.textContent = '퇴근하기';
             updateStatus('working');
         }
     } else {
+        // 🔥 누락 기록이 있든 없든, 무조건 출근 버튼을 활성화합니다!
         checkInBtn.style.display = 'block';
         checkInBtn.disabled = false;
         checkInBtn.style.opacity = '1';
         checkInBtn.textContent = '출근하기';
 
-        if (!result.missingRecord) {
-            checkOutBtn.style.display = 'none';
-            checkOutBtn.disabled = true;
-        }
+        checkOutBtn.style.display = 'none';
+        checkOutBtn.disabled = true;
         updateStatus('waiting');
     }
 }
@@ -2463,16 +2464,21 @@ async function fetchHistoryData(type) {
     .time-select { padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 16px; background: white; outline: none; }
 </style>
 
-<!-- 1. 학생: 처음 마주하는 고정 팝업 -->
-<div class="sig-modal-overlay" id="missing-alert-modal" style="z-index: 4000;">
+<!-- 1. 학생: 처음 마주하는 고정 팝업 (닫기 버튼 추가됨!) -->
+<div class="sig-modal-overlay" id="missing-alert-modal" style="z-index: 4000; display: none;">
     <div class="sig-modal-card">
         <div class="missing-box">
             <div class="missing-title">🚨 출퇴근 기록 누락 발생!</div>
             <div class="missing-date-text" id="missing-alert-text">2026-04-15의 [퇴근] 누락</div>
-            <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">해당 사유를 선택하거나 담당자 서명을 받아야<br>오늘의 [퇴근] 버튼이 활성화됩니다.</p>
+            
+            <!-- 🔥 멘트 수정: 버튼 활성화 안 된다는 협박 멘트 삭제 -->
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">과거에 누락된 출퇴근 기록이 있습니다.<br>시간 나실 때 서명을 제출해 주세요!</p>
             
             <button class="btn missing-btn-a" onclick="openMissingStudentSig()">출,퇴 깜빡했어요 (담당자 서명 필요)</button>
             <button class="btn missing-btn-b" onclick="submitMissingVacation()">휴가 / 기타 사유 (즉시 제출)</button>
+            
+            <!-- 🔥 나중에 하기(닫기) 버튼 추가! (이거 누르면 창 꺼지고 정상 출퇴근 가능) -->
+            <button class="btn" style="background: none; border: none; color: #94a3b8; margin-top: 10px; text-decoration: underline; font-size: 14px; box-shadow: none;" onclick="document.getElementById('missing-alert-modal').style.display='none'">다음에 할게요 (닫기)</button>
         </div>
     </div>
 </div>
