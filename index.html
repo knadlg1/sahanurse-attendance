@@ -1872,20 +1872,45 @@ function applyTodayStatus(result) {
         document.getElementById('handover-overlay').style.display = 'flex';
     }
 
-            async function submitFinalSignature() {
+                // ==================== 🔥 최종 서명 제출 관련 함수 (커스텀 팝업 적용) 🔥 ====================
+
+    // 1. 제출 버튼 누르면 팝업창 띄우기
+    function submitFinalSignature() {
         if (!checkEmptySignatures('.manager-canvas')) {
             alert('⚠️ 선생님(담당자) 서명 빈칸 있음. 표시된 칸에 서명해주세요!');
             return;
         }
         
-        if (!confirm(`[${currentInterval.intervalStr}]\n최종 제출하시겠습니까?\n제출 후, 수정 불가.`)) return;
+        // 기존의 못생긴 confirm 창 대신 우리가 만든 예쁜 팝업을 엽니다.
+        document.getElementById('final-confirm-period').innerText = `[${currentInterval.intervalStr}]`;
+        document.getElementById('final-responsibility-check').checked = false; // 체크박스 초기화
+        document.getElementById('real-final-submit-btn').disabled = true; // 제출 버튼 잠금
+        
+        document.getElementById('final-confirm-modal').style.display = 'flex';
+    }
 
+    // 2. 팝업창 닫기
+    function closeFinalConfirmModal() {
+        document.getElementById('final-confirm-modal').style.display = 'none';
+    }
+
+    // 3. 체크박스 누를 때마다 버튼 잠금 해제/잠금
+    function toggleFinalSubmitBtn() {
+        const isChecked = document.getElementById('final-responsibility-check').checked;
+        document.getElementById('real-final-submit-btn').disabled = !isChecked;
+    }
+
+    // 4. 진짜 최종 제출 서버 전송 로직
+    async function executeFinalSubmit() {
+        // 팝업창 닫기
+        closeFinalConfirmModal();
+        
         showLoader(true);
         const btn = document.getElementById('final-submit-btn');
         btn.disabled = true;
         btn.textContent = '문서 생성 중... ⏳ (약 10초 소요)';
 
-        // 🔥 화면에 있는 1~30일차 출결 데이터 & 캔버스 서명 이미지 수집
+        // 화면에 있는 1~30일차 출결 데이터 & 캔버스 서명 이미지 수집
         const recordElements = document.querySelectorAll('.compact-record');
         let submissionRecords = [];
 
@@ -1900,7 +1925,6 @@ function applyTodayStatus(result) {
             let outTime = "-";
             let workHours = "-";
             
-            // "09:00 ~ 18:00 (8h)" 형태에서 시간 분리
             if (timeText.includes("~")) {
                 let parts = timeText.split(' ');
                 inTime = parts[0]; 
@@ -1908,7 +1932,6 @@ function applyTodayStatus(result) {
                 workHours = parts[3] ? parts[3].replace(/[^0-9]/g, '') : "0"; 
             }
 
-            // 캔버스에 서명이 있으면 이미지(Base64)로 변환해서 저장
             if (studentCanvas && managerCanvas) {
                 studentSig = studentCanvas.toDataURL('image/png').split(',')[1];
                 managerSig = managerCanvas.toDataURL('image/png').split(',')[1];
@@ -1916,7 +1939,7 @@ function applyTodayStatus(result) {
 
             submissionRecords.push({
                 index: index + 1, 
-                dateText: el.querySelector('.compact-date').innerText.split(' (')[0], // "10월 1일"
+                dateText: el.querySelector('.compact-date').innerText.split(' (')[0], 
                 inTime: inTime,
                 outTime: outTime,
                 workHours: workHours,
@@ -1937,16 +1960,15 @@ function applyTodayStatus(result) {
                     intervalStr: currentInterval.intervalStr,
                     targetStartDate: currentInterval.startDate,
                     targetEndDate: currentInterval.endDate,
-                    records: submissionRecords // 🔥 수집한 30일치 데이터를 서버로 보냄!
+                    records: submissionRecords
                 })
             });
             
             const result = await response.json();
             showLoader(false);
             
-                        if (result.status === 'success') {
+            if (result.status === 'success') {
                 alert('🎉 문서 제출 완료!');
-                // 🔥 폰이 가진 임시 기억을 지워버림 -> 새로고침 시 무조건 서버에 다시 물어보게 됨!
                 sessionStorage.removeItem('currentUser'); 
                 location.reload(); 
             } else {
@@ -2665,7 +2687,34 @@ async function fetchHistoryData(type) {
     </div>
 </div>
 
+<!-- 🔥 커스텀 최종 제출 확인 팝업 🔥 -->
+<div class="sig-modal-overlay" id="final-confirm-modal" style="z-index: 9999999;">
+    <div class="sig-modal-card">
+        <div class="sig-modal-title">최종 제출 확인</div>
+        
+        <div style="text-align: center; margin-bottom: 15px;">
+            <strong style="color: #6366f1; font-size: 16px;" id="final-confirm-period">기간 불러오는 중...</strong><br>
+            <span style="color: #ef4444; font-weight: bold; font-size: 14px;">제출 후에는 절대 수정이 불가합니다.</span>
+        </div>
 
+        <!-- AI 판독 경고 박스 -->
+        <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+            <span style="color: #dc2626; font-size: 14px; font-weight: 900;">🚨 담당자 사인은 누적 데이터 AI 판독 중</span>
+            <p style="color: #64748b; font-size: 11px; margin-top: 4px; letter-spacing: -0.5px;">서명 위조 및 조작 적발 시 실습이 무효 처리될 수 있습니다.</p>
+        </div>
+
+        <!-- 동의 체크박스 -->
+        <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #334155; margin-bottom: 20px; cursor: pointer; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <input type="checkbox" id="final-responsibility-check" style="margin-top: 2px; transform: scale(1.3);" onchange="toggleFinalSubmitBtn()">
+            <span style="line-height: 1.4;"><b>[필수]</b> 담당자 서명 조작 제출에 대한 모든 책임을 집니다.</span>
+        </label>
+
+        <div class="modal-tools">
+            <button class="modal-btn modal-btn-cancel" onclick="closeFinalConfirmModal()">취소</button>
+            <button class="modal-btn modal-btn-save" id="real-final-submit-btn" style="background: #0f172a; color: white;" onclick="executeFinalSubmit()" disabled>최종 제출하기</button>
+        </div>
+    </div>
+</div>
     
 </body>
 </html>
