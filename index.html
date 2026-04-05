@@ -1261,20 +1261,27 @@ function showMissingHandover() {
     document.getElementById('missing-handover-overlay').style.display = 'flex';
 }
 
-function openMissingManagerSig() {
-    document.getElementById('missing-handover-overlay').style.display = 'none';
-    document.getElementById('missing-manager-sig-modal').style.display = 'flex';
-    setupCanvas('missing-manager-canvas');
-    
-    // 시스템이 알아서 출/퇴근 드롭다운 칸을 보여주거나 숨김
-    const type = window.currentMissingRecord.type;
-    document.getElementById('missing-in-time-box').style.display = (type === '출근' || type === '출,퇴근') ? 'block' : 'none';
-    document.getElementById('missing-out-time-box').style.display = (type === '퇴근' || type === '출,퇴근') ? 'block' : 'none';
-    
-    // 드롭다운 옵션 채우기
-    generateTimeDropdowns('in-time-dropdowns', 'missing-in-h', 'missing-in-m');
-    generateTimeDropdowns('out-time-dropdowns', 'missing-out-h', 'missing-out-m');
-}
+    function openMissingManagerSig() {
+        document.getElementById('missing-handover-overlay').style.display = 'none';
+        document.getElementById('missing-manager-sig-modal').style.display = 'flex';
+        setupCanvas('missing-manager-canvas');
+        
+        // 시스템이 알아서 출/퇴근 드롭다운 칸을 보여주거나 숨김
+        const type = window.currentMissingRecord.type;
+        document.getElementById('missing-in-time-box').style.display = (type === '출근' || type === '출,퇴근') ? 'block' : 'none';
+        document.getElementById('missing-out-time-box').style.display = (type === '퇴근' || type === '출,퇴근') ? 'block' : 'none';
+        
+        // 드롭다운 옵션 채우기
+        generateTimeDropdowns('in-time-dropdowns', 'missing-in-h', 'missing-in-m');
+        generateTimeDropdowns('out-time-dropdowns', 'missing-out-h', 'missing-out-m');
+
+        // 🔥 추가된 부분: 학생의 실제 병원 이름을 가져와서 누락 서명 팝업의 AI 경고문에 꽂아 넣습니다!
+        const hospitalName = currentUser.hospital || "실습병원";
+        const warningElement = document.getElementById('missing-ai-warning-text');
+        if (warningElement) {
+            warningElement.innerText = `🚨 [${hospitalName}] 담당자 서명 AI 판독 중`;
+        }
+    }
 
 function generateTimeDropdowns(containerId, hId, mId) {
     let hOptions = ''; let mOptions = '';
@@ -1875,14 +1882,19 @@ function applyTodayStatus(result) {
                 // ==================== 🔥 최종 서명 제출 관련 함수 (커스텀 팝업 적용) 🔥 ====================
 
     // 1. 제출 버튼 누르면 팝업창 띄우기
+        // 1. 제출 버튼 누르면 팝업창 띄우기 (병원 이름 자동 반영)
     function submitFinalSignature() {
         if (!checkEmptySignatures('.manager-canvas')) {
             alert('⚠️ 선생님(담당자) 서명 빈칸 있음. 표시된 칸에 서명해주세요!');
             return;
         }
         
-        // 기존의 못생긴 confirm 창 대신 우리가 만든 예쁜 팝업을 엽니다.
         document.getElementById('final-confirm-period').innerText = `[${currentInterval.intervalStr}]`;
+        
+        // 🔥 추가된 부분: 학생의 실제 병원 이름을 가져와서 AI 경고문에 꽂아 넣습니다!
+        const hospitalName = currentUser.hospital || "실습병원";
+        document.getElementById('final-ai-warning-text').innerText = `🚨 [${hospitalName}] 담당자 서명 AI 판독 중`;
+        
         document.getElementById('final-responsibility-check').checked = false; // 체크박스 초기화
         document.getElementById('real-final-submit-btn').disabled = true; // 제출 버튼 잠금
         
@@ -2615,9 +2627,11 @@ async function fetchHistoryData(type) {
 </div>
 
 <!-- 4. 담당자(선생님): 시간 선택 및 서명 팝업 -->
-<div class="sig-modal-overlay" id="missing-manager-sig-modal" style="z-index: 4003;">
-    <div class="sig-modal-card">
-        <div class="sig-modal-title">👨‍🏫 담당자 확인 및 서명</div>
+        <!-- [기존 코드에서 텍스트 부분만 교체] -->
+        <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+            <!-- 👇 여기에 id="missing-ai-warning-text" 를 추가했습니다 👇 -->
+            <span id="missing-ai-warning-text" style="color: #dc2626; font-size: 12px; font-weight: 900;">🚨 [실습병원] 담당자 서명 AI 판독 중</span>
+        </div>
         
         <!-- 동적으로 보일 시간 선택 칸 -->
         <div id="missing-in-time-box" style="display: none; text-align: center;">
@@ -2703,9 +2717,10 @@ async function fetchHistoryData(type) {
             <span style="color: #ef4444; font-weight: bold; font-size: 14px;">제출 후에는 절대 수정이 불가합니다.</span>
         </div>
 
-        <!-- AI 판독 경고 박스 -->
+                <!-- [기존 코드에서 텍스트 부분만 교체] -->
         <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-            <span style="color: #dc2626; font-size: 14px; font-weight: 900;">🚨 담당자 사인은 누적 데이터 AI 판독 중</span>
+            <!-- 👇 여기에 id="final-ai-warning-text" 를 추가했습니다 👇 -->
+            <span id="final-ai-warning-text" style="color: #dc2626; font-size: 14px; font-weight: 900;">🚨 [실습병원] 담당자 서명 AI 판독 중</span>
             <p style="color: #64748b; font-size: 11px; margin-top: 4px; letter-spacing: -0.5px;">서명 위조 및 조작 적발 시 실습이 무효 처리될 수 있습니다.</p>
         </div>
 
