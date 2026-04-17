@@ -184,15 +184,22 @@
             color: #64748b;
         }
         
-        .loader {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #667eea;
+                .loader {
+            border: 5px solid rgba(255, 255, 255, 0.5);
+            border-top: 5px solid #3b82f6;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            /* 🔥 로딩 아이콘을 무조건 화면 최상단 정중앙에 고정! 🔥 */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            margin-top: -25px;
+            margin-left: -25px;
+            z-index: 999999999; /* 팝업창보다 훨씬 높은 숫자 */
             display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         
         @keyframes spin {
@@ -712,7 +719,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbzyuzxgC8d8fH_C9t1pP6mWFt8fxAsWNEEDIwhfdJeT5CSt1iZUMWrRArDywBv3OB7J-w/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycby-gbfjjqleYxXfpi3i38wQuHdX504UBfDMCXYdyM5BqdU2_Z7XYVkmGi90k-iNLuQc7g/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 30, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1022,13 +1029,20 @@ function forceRedirect(url) {
             } else {
                 showMainSection();
 
-                // 🔥 로그인 후 서버 추가 호출 없이 바로 화면 반영
-                if (result.stats) {
-                    applyStudentStats(result.stats);
-                }
-                if (result.todayStatus) {
-                    applyTodayStatus(result.todayStatus);
-                }
+// 스켈레톤 먼저 (즉시 표시)
+document.getElementById('stat-hours').innerText = '...';
+document.getElementById('stat-tardy').innerText = '...';
+document.getElementById('stat-early').innerText = '...';
+document.getElementById('stat-out').innerText = '...';
+document.getElementById('last-updated-time').innerText = '🕒 불러오는 중...';
+
+// 데이터는 100ms 후 부드럽게 채우기
+if (result.stats) {
+    setTimeout(function() { applyStudentStats(result.stats); }, 100);
+}
+if (result.todayStatus) {
+    setTimeout(function() { applyTodayStatus(result.todayStatus); }, 100);
+}
             }
 
         } else if (result.status === 'not_found') {
@@ -2751,7 +2765,7 @@ async function approveMissingRecord(recordId, type, inTime, outTime, row) {
             <!-- 🔥 멘트 수정: 버튼 활성화 안 된다는 협박 멘트 삭제 -->
             <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">과거에 누락된 출퇴근 기록이 있습니다.<br>시간 나실 때 서명을 제출해 주세요!</p>
             
-            <button class="btn missing-btn-a" onclick="openMissingStudentSig()">출,퇴 깜빡했어요 (담당자 서명 필요)</button>
+            <button class="btn missing-btn-a" onclick="openMissingStudentSig()">출,퇴 깜빡!(담당자 인증 필요)</button>
             <button class="btn missing-btn-b" onclick="submitMissingVacation()">휴가 / 기타 사유 (즉시 제출)</button>
             
             <!-- 🔥 나중에 하기(닫기) 버튼 추가! (이거 누르면 창 꺼지고 정상 출퇴근 가능) -->
@@ -2788,7 +2802,7 @@ async function approveMissingRecord(recordId, type, inTime, outTime, row) {
         <div class="sig-modal-title">👨‍🏫 담당자 확인 및 서명</div>
         
         <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 10px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
-            <span id="missing-ai-warning-text" style="color: #dc2626; font-size: 12px; font-weight: 900;">🚨 [실습병원] 담당자 서명 AI 판독 중</span>
+            <span id="missing-ai-warning-text" style="color: #dc2626; font-size: 12px; font-weight: 900;">🚨 [실습병원] 담당자 인증 </span>
         </div>
         
         <div id="otp-request-section" style="margin-bottom: 15px; text-align: left;">
@@ -2822,6 +2836,7 @@ async function approveMissingRecord(recordId, type, inTime, outTime, row) {
                 <button onclick="clearCanvas('missing-manager-canvas')" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">[지우기]</button>
             </div>
             <button class="btn" id="missing-final-btn" style="background: #3b82f6; color: white; margin-top: 15px;" onclick="submitMissingSignature()">승인 요청하기 (원장님 확인용)</button>
+            <button class="btn" style="background: #f1f5f9; color: #475569; margin-top: 10px;" onclick="document.getElementById('missing-manager-sig-modal').style.display='none'">취소하고 닫기</button>
         </div>
     </div>
 </div>
