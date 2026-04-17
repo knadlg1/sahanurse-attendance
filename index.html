@@ -562,15 +562,48 @@ input[type="date"], input[type="file"], input[type="text"] {
                        <!-- 로그인 후 화면 -->
         <div id="main-section" style="display: none;">
             
-            <!-- 1. 이름 및 병원 (위로 빼고, 너무 크지 않게 조절) -->
-            <div style="text-align: center; margin-bottom: 15px;">
-                <div id="user-name" style="font-size: 18px; font-weight: 700; color: #1e293b;">-</div>
-                <div id="user-hospital" style="font-size: 13px; color: #64748b; margin-top: 2px;">-</div>
-            </div>
+           <!-- 이름 + 병원 + 기간 2x2 그리드 -->
+<div style="
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    margin-bottom: 15px;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 10px 15px;
+">
+    <!-- 왼쪽: 이름 (위) -->
+    <div style="font-size: 18px; font-weight: 900; color: #1e293b;">
+        <span id="user-name">홍길동</span>
+    </div>
 
-            <!-- 2. 총 실습 기간 표시 -->
-            <div id="total-period-display" style="text-align: center; color: #1e293b; font-size: 14px; font-weight: bold; margin-bottom: 12px; letter-spacing: -0.5px;">
-            </div>
+    <!-- 가운데 구분선 (세로) -->
+    <div style="
+        border-left: 1px solid #cbd5e1;
+        margin: 0 12px;
+        grid-row: span 2;
+        align-self: stretch;
+    "></div>
+
+    <!-- 오른쪽: 기간 (세로 중앙 정렬) -->
+    <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        grid-row: span 2;
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+        letter-spacing: -0.5px;
+        text-align: center;
+    ">
+        <span id="total-period-display">26.02.06<br>~<br>26.08.31</span>
+    </div>
+
+    <!-- 왼쪽: 병원 (아래) -->
+    <div style="font-size: 11px; color: #6366f1; font-weight: 600; margin-top: 4px;">
+        <span id="user-hospital">사하부산병원</span>
+    </div>
+</div>
 
             <style>
 /* CSS 추가: 아이폰에서 날짜 칸 삐져나가는 현상 완벽 해결 */
@@ -678,6 +711,18 @@ input[type="date"], input[type="file"], input[type="text"] {
                <!-- 🔥 서명 섹션 (업그레이드 팝업 버전) 🔥 -->
         <div id="signature-section">
             <div style="text-align: center; margin-bottom: 20px;">
+                 <!-- 🔥 뒤로가기 버튼 추가 -->
+        <button onclick="goBackToMain()" style="
+            position: absolute;
+            left: 25px;
+            background: none;
+            border: none;
+            font-size: 15px;
+            color: #64748b;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 5px;
+        ">← 뒤로</button>
                 <h2 style="font-size: 20px; color: #1e293b; margin-bottom: 5px;">📋 실습근무카드</h2>
                 <p id="sig-header-date" style="font-size: 18px; color: #000000; font-weight: 800; letter-spacing: -0.5px;">데이터 불러오는 중...</p>
             </div>
@@ -719,7 +764,7 @@ input[type="date"], input[type="file"], input[type="text"] {
     // ==================== 설정 ====================
     const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycby-gbfjjqleYxXfpi3i38wQuHdX504UBfDMCXYdyM5BqdU2_Z7XYVkmGi90k-iNLuQc7g/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbwLoDigVKTdK6iO1M5GCsUnQ_FtsnjINj9MR9RXtYp9ORYK7eDetEP8EdDzt-VIM7IITA/exec',
         SESSION_DURATION: 5 * 60 * 1000, // 5분
         MAX_DISTANCE: 30, // 미터
         GPS_TIMEOUT: 20000, // 20초
@@ -1568,43 +1613,98 @@ async function submitMissingSignature() {
     
 
             function renderIntervalList() {
-        const container = document.getElementById('interval-list');
-        container.innerHTML = '';
+    const container = document.getElementById('interval-list');
+    container.innerHTML = '';
 
-        if (!currentUser.intervals || currentUser.intervals.length === 0) {
-            container.innerHTML = '<p style="text-align:center; font-size:13px; color:#94a3b8;">등록된 실습 기간이 없습니다.</p>';
-            return;
-        }
+    if (!currentUser.intervals || currentUser.intervals.length === 0) {
+        container.innerHTML = '<p style="text-align:center; font-size:13px; color:#94a3b8;">등록된 실습 기간이 없습니다.</p>';
+        return;
+    }
 
-        currentUser.intervals.forEach(inv => {
-            // 🔥 날짜 간소화: 2026-02-06 -> 26-02-06 / 2026-03-07 -> 03-07
-            const sParts = inv.startDate.split('-'); 
-            const eParts = inv.endDate.split('-');   
-            const shortStart = sParts[0].substring(2) + "-" + sParts[1] + "-" + sParts[2]; // 26-02-06
-            const shortEnd = eParts[1] + "-" + eParts[2]; // 03-07
-            const displayDate = shortStart + "~" + shortEnd; // 26-02-06~03-07
+    // 완료된 것들 먼저 분리
+    const completedList = currentUser.intervals.filter(inv => inv.status === 'completed');
+    const activeList = currentUser.intervals.filter(inv => inv.status !== 'completed');
 
-            let btnHtml = '';
-            if (inv.status === 'completed') {
-                btnHtml = `<button class="interval-btn btn-completed" disabled>제출완료</button>`;
-            } else if (inv.status === 'available') {
-                btnHtml = `<button class="interval-btn btn-available" onclick="openSignatureUI('${inv.startDate}', '${inv.endDate}', '${inv.intervalStr}')">서명하기</button>`;
-            } else {
-                btnHtml = `<button class="interval-btn btn-locked" disabled>진행 중</button>`;
-            }
+    // 🔥 완료된 것들 - 접힌 상태로 표시
+    if (completedList.length > 0) {
+        container.innerHTML += `
+            <div onclick="toggleCompletedList()" style="
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 8px 12px; background: #f1f5f9; border-radius: 8px;
+                margin-bottom: 8px; cursor: pointer;
+            ">
+                <span style="font-size: 13px; color: #64748b; font-weight: 600;">
+                    ✅ 제출완료 ${completedList.length}건
+                </span>
+                <span id="completed-toggle-icon" style="color: #94a3b8; font-size: 12px;">▼ 펼치기</span>
+            </div>
+            <div id="completed-list-wrap" style="display: none;">
+        `;
 
-            // 🔥 '서명' 단어 삭제 + 한 줄로 예쁘게 정렬
+        completedList.forEach(inv => {
+            const sParts = inv.startDate.split('-');
+            const eParts = inv.endDate.split('-');
+            const shortDate = sParts[0].substring(2) + "-" + sParts[1] + "-" + sParts[2] + "~" + eParts[1] + "-" + eParts[2];
+
             container.innerHTML += `
-                <div class="interval-card" style="padding: 12px 15px; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 14px; font-weight: bold; color: #6366f1;">${inv.round}회차</span>
-                        <span style="font-size: 14px; color: #1e293b; letter-spacing: -0.5px;">${displayDate}</span>
-                    </div>
-                    ${btnHtml}
+                <div style="
+                    display: flex; justify-content: space-between; align-items: center;
+                    padding: 7px 12px; margin-bottom: 4px;
+                    background: #f8fafc; border-radius: 6px;
+                    border-left: 3px solid #10b981;
+                ">
+                    <span style="font-size: 12px; color: #94a3b8;">${inv.round}회차 ${shortDate}</span>
+                    <span style="font-size: 11px; color: #10b981; font-weight: bold;">제출완료</span>
                 </div>
             `;
         });
+
+        container.innerHTML += `</div>`;
     }
+
+    // 🔥 서명 필요한 것들 - 크게 부각
+    activeList.forEach(inv => {
+        const sParts = inv.startDate.split('-');
+        const eParts = inv.endDate.split('-');
+        const shortStart = sParts[0].substring(2) + "-" + sParts[1] + "-" + sParts[2];
+        const shortEnd = eParts[1] + "-" + eParts[2];
+        const displayDate = shortStart + "~" + shortEnd;
+
+        let btnHtml = '';
+        if (inv.status === 'available') {
+            btnHtml = `<button class="interval-btn btn-available" onclick="openSignatureUI('${inv.startDate}', '${inv.endDate}', '${inv.intervalStr}')">서명하기</button>`;
+        } else {
+            btnHtml = `<button class="interval-btn btn-locked" disabled>진행 중</button>`;
+        }
+
+        container.innerHTML += `
+            <div class="interval-card" style="
+                padding: 12px 15px; display: flex; align-items: center;
+                justify-content: space-between;
+                ${inv.status === 'available' ? 'border: 1.5px solid #6366f1; box-shadow: 0 2px 8px rgba(99,102,241,0.15);' : ''}
+            ">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 14px; font-weight: bold; color: #6366f1;">${inv.round}회차</span>
+                    <span style="font-size: 14px; color: #1e293b; letter-spacing: -0.5px;">${displayDate}</span>
+                </div>
+                ${btnHtml}
+            </div>
+        `;
+    });
+}
+
+// 완료 목록 펼치기/접기
+function toggleCompletedList() {
+    const wrap = document.getElementById('completed-list-wrap');
+    const icon = document.getElementById('completed-toggle-icon');
+    if (wrap.style.display === 'none') {
+        wrap.style.display = 'block';
+        icon.textContent = '▲ 접기';
+    } else {
+        wrap.style.display = 'none';
+        icon.textContent = '▼ 펼치기';
+    }
+}
     
     function updateStatus(status) {
         const badge = document.getElementById('status-badge');
