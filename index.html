@@ -1695,20 +1695,23 @@ function applyTodayStatus(result) {
         }, 5000);
     }
     
-    // 기기 종류(태블릿/스마트폰)까지 확실하게 구별하는 고유 식별자 생성
+  // 기기 종류(태블릿/스마트폰)까지 구별하되, 예민한 측정값(화면회전, 브라우저 차이)을 덜 민감하게 보정
 function generateDeviceId() {
-    const w = screen.width;
-    const h = screen.height;
+    // 1. 폰을 가로/세로로 돌려도 값이 변하지 않도록 짧은 값을 w, 긴 값을 h로 고정
+    const w = Math.min(screen.width, screen.height);
+    const h = Math.max(screen.width, screen.height);
+    
     const cd = screen.colorDepth;
-    const dpr = window.devicePixelRatio || 1;
     const mtp = navigator.maxTouchPoints || 0;
     
+    // 2. devicePixelRatio(dpr)는 카카오브라우저/사파리, 폰 글자크기 설정마다 달라서 삭제함
     const userAgent = navigator.userAgent.toLowerCase();
     const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgent);
     const deviceType = isTablet ? 'Tablet' : 'Phone';
     
-    const deviceId = deviceType + '_' + w + '_' + h + '_' + cd + '_' + dpr + '_' + mtp;
-    console.log('기기 고유값:', deviceId);
+    // 변하지 않는 안정적인 값들로만 고유 ID 조합
+    const deviceId = deviceType + '_' + w + '_' + h + '_' + cd + '_' + mtp;
+    console.log('덜 예민해진 기기 고유값:', deviceId);
     return deviceId;
 }
 
