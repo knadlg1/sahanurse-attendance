@@ -1809,24 +1809,26 @@ function applyTodayStatus(result) {
         }, 5000);
     }
     
-  // 기기 종류(태블릿/스마트폰)까지 구별하되, 예민한 측정값(화면회전, 브라우저 차이)을 덜 민감하게 보정
-function generateDeviceId() {
-    // 1. 폰을 가로/세로로 돌려도 값이 변하지 않도록 짧은 값을 w, 긴 값을 h로 고정
-    const w = Math.min(screen.width, screen.height);
-    const h = Math.max(screen.width, screen.height);
-    
-    const cd = screen.colorDepth;
-    const mtp = navigator.maxTouchPoints || 0;
-    
-    // 2. devicePixelRatio(dpr)는 카카오브라우저/사파리, 폰 글자크기 설정마다 달라서 삭제함
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk|(puffin(?!.*(IP|AP|WP))))/.test(userAgent);
-    const deviceType = isTablet ? 'Tablet' : 'Phone';
-    
-    // 변하지 않는 안정적인 값들로만 고유 ID 조합
-    const deviceId = deviceType + '_' + w + '_' + h + '_' + cd + '_' + mtp;
-    console.log('덜 예민해진 기기 고유값:', deviceId);
-    return deviceId;
+ function generateDeviceId() {
+    // 태블릿이면 아예 차단
+    const ua = navigator.userAgent.toLowerCase();
+    const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch))|kindle|playbook|silk)/.test(ua);
+    if (isTablet) {
+        alert('태블릿에서는 사용할 수 없습니다.\n본인 스마트폰으로 접속해주세요.');
+        throw new Error('TABLET_BLOCKED');
+    }
+
+    // localStorage에 UUID 있으면 재사용, 없으면 새로 발급
+    let uuid = localStorage.getItem('deviceUUID');
+    if (!uuid) {
+        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        localStorage.setItem('deviceUUID', uuid);
+    }
+    console.log('기기 UUID:', uuid);
+    return uuid;
 }
 
 // ==================== 담당자 OTP 관련 함수 ====================
