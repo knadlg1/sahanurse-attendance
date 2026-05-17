@@ -146,11 +146,12 @@
 
         /* 실습기간 타임라인 */
         .practice-timeline { margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0; }
-        .tl-dates { display:flex; justify-content:space-between; font-size:10px; color:#aaa; margin-bottom:6px; font-weight:600; }
-        .tl-track { position:relative; height:4px; background:#eeeef5; border-radius:2px; margin:0 2px; }
-        .tl-fill  { height:4px; background:linear-gradient(90deg,#a78bfa,#6c63ff); border-radius:2px; transition:width 0.9s ease; }
+        .tl-bar-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+        .tl-bar-row span { font-size:10px; font-weight:700; }
+        .tl-track { position:relative; height:5px; background:#eeeef5; border-radius:2px; margin:0 2px; }
+        .tl-fill  { height:5px; background:linear-gradient(90deg,#a78bfa,#6c63ff); border-radius:2px; transition:width 0.9s ease; }
         .tl-dot   { position:absolute; top:50%; width:11px; height:11px; background:#6c63ff; border:2.5px solid #fff; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 0 2px rgba(108,99,255,0.35); transition:left 0.9s ease; }
-        .tl-dday  { text-align:center; font-size:10px; color:#6c63ff; font-weight:700; margin-top:6px; letter-spacing:-0.01em; }
+        .tl-dday  { text-align:right; font-size:10px; color:#6c63ff; font-weight:700; margin-top:3px; letter-spacing:-0.01em; }
 
         /* 진행률 */
         .progress-card { background:#fff; margin:8px 12px 0; border-radius:14px; padding:11px 14px; border:1px solid #eee; }
@@ -409,35 +410,35 @@
             </div>
         </div>
         <div class="practice-timeline">
-            <div class="tl-dates">
-                <span id="tl-start">-</span>
-                <span id="tl-end">-</span>
+            <div class="tl-bar-row">
+                <span style="color:#6c63ff;">실습기간</span>
+                <div style="font-size:10px;font-weight:600;color:#aaa;display:flex;gap:3px;">
+                    <span id="tl-start">-</span><span>~</span><span id="tl-end">-</span>
+                </div>
             </div>
             <div class="tl-track">
                 <div class="tl-fill" id="tl-fill" style="width:0%"></div>
                 <div class="tl-dot" id="tl-dot" style="left:0%"></div>
             </div>
-            <div class="tl-dday" id="tl-dday"></div>
+            <div class="tl-dday" id="tl-dday" style="margin-bottom:7px;"></div>
+
+            <div class="tl-bar-row">
+                <span style="color:#7c9cf5;">내 실습시간</span>
+                <span id="stat-my-hours" style="font-size:10px;font-weight:700;color:#7c9cf5;">0시간</span>
+            </div>
+            <div class="tl-track" style="margin-bottom:7px;">
+                <div id="progress-fill" style="height:5px;border-radius:2px;background:linear-gradient(90deg,#7c9cf5,#6c63ff);width:0%;transition:width 1s ease;"></div>
+            </div>
+
+            <div class="tl-bar-row">
+                <span style="color:#34d399;">기준 시간</span>
+                <span id="stat-std-hours" style="font-size:10px;font-weight:700;color:#34d399;">0시간</span>
+            </div>
+            <div class="tl-track">
+                <div id="progress-std-fill" style="height:5px;border-radius:2px;background:linear-gradient(90deg,#5ec490,#34d399);width:0%;transition:width 1s ease;"></div>
+            </div>
         </div>
     </div>
-
-    <div class="progress-card">
-    <div class="prog-header">
-        <span class="prog-title">실습 진행률</span>
-        <span class="prog-nums">
-            <span id="stat-my-hours" style="color:#6c63ff;">0시간</span>
-            <span style="color:#aaa;font-weight:700;font-size:12px;"> / </span>
-            <span id="stat-std-hours" style="color:#5ec490;">0시간</span>
-            <span style="color:#aaa;font-weight:700;font-size:12px;"> / 780시간</span>
-        </span>
-    </div>
-    <div class="prog-track">
-        <div class="prog-fill" id="progress-fill" style="width:0%;background:#6c63ff;"></div>
-    </div>
-    <div class="prog-track" style="margin-top:0.5px;height:3px;">
-    <div class="prog-fill" id="progress-std-fill" style="width:0%;background:#5ec490;height:3px;"></div>
-</div>
-</div>
 
     <div id="urgent-request-banner" class="urgent-banner" onclick="openProofModal()">
         🚨 [원장님 요청] <span id="request-type-text">서류</span> 증빙을 제출해주세요! 👆
@@ -1719,21 +1720,22 @@ let bsSigCtx = null;
 let bsSigDrawing = false;
 
 async function loadBsAttendance(startDate, endDate) {
-    const q = window.fsQuery(
-        window.fsCollection(window.db, 'attendance'),
-        window.fsWhere('kakaoId', '==', String(currentUser.kakaoId)),
-        window.fsWhere('date', '>=', startDate),
-        window.fsWhere('date', '<=', endDate),
-        window.fsOrderBy('date', 'asc')
-    );
-    const snap = await window.fsGetDocs(q);
+    const dates = [];
+    let d = new Date(startDate + 'T00:00:00');
+    const endD = new Date(endDate + 'T00:00:00');
+    function fmtD(dt) { return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+    while (d <= endD) { dates.push(fmtD(d)); d.setDate(d.getDate()+1); }
     const days = ['일','월','화','수','목','금','토'];
     bsAttendanceRows = [];
-    snap.forEach(d => {
-        const rec = d.data();
-        const dow = new Date(rec.date + 'T00:00:00').getDay();
+    const snaps = await Promise.all(dates.map(date =>
+        window.fsGetDoc(window.fsDoc(window.db, 'attendance', String(currentUser.kakaoId)+'_'+date))
+    ));
+    snaps.forEach((s, i) => {
+        if (!s.exists()) return;
+        const rec = s.data();
+        const dow = new Date(dates[i] + 'T00:00:00').getDay();
         bsAttendanceRows.push({
-            date: rec.date, dayStr: days[dow],
+            date: dates[i], dayStr: days[dow],
             inTime: rec.inTime || '-', outTime: rec.outTime || '-',
             studentSig: null, managerSig: null
         });
