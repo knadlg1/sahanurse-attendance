@@ -416,18 +416,18 @@
                     <span id="tl-start">-</span><span>~</span><span id="tl-end">-</span>
                 </div>
             </div>
-            <div class="tl-track">
+            <div class="tl-track" style="margin-bottom:10px;">
                 <div class="tl-fill" id="tl-fill" style="width:0%"></div>
                 <div class="tl-dot" id="tl-dot" style="left:0%"></div>
             </div>
-            <div class="tl-dday" id="tl-dday" style="margin-bottom:7px;"></div>
 
             <div class="tl-bar-row">
                 <span style="color:#7c9cf5;">내 실습시간</span>
                 <span id="stat-my-hours" style="font-size:10px;font-weight:700;color:#7c9cf5;">0시간</span>
             </div>
-            <div class="tl-track" style="margin-bottom:7px;">
-                <div id="progress-fill" style="height:5px;border-radius:2px;background:linear-gradient(90deg,#7c9cf5,#6c63ff);width:0%;transition:width 1s ease;"></div>
+            <div class="tl-track" style="margin-bottom:10px;">
+                <div id="progress-fill" style="height:5px;border-radius:2px;background:#7c9cf5;width:0%;transition:width 0.9s ease;"></div>
+                <div id="my-hours-dot" class="tl-dot" style="left:0%;background:#7c9cf5;box-shadow:0 0 0 2px rgba(124,156,245,0.35);"></div>
             </div>
 
             <div class="tl-bar-row">
@@ -435,7 +435,8 @@
                 <span id="stat-std-hours" style="font-size:10px;font-weight:700;color:#34d399;">0시간</span>
             </div>
             <div class="tl-track">
-                <div id="progress-std-fill" style="height:5px;border-radius:2px;background:linear-gradient(90deg,#5ec490,#34d399);width:0%;transition:width 1s ease;"></div>
+                <div id="progress-std-fill" style="height:5px;border-radius:2px;background:linear-gradient(90deg,#5ec490,#34d399);width:0%;transition:width 0.9s ease;"></div>
+                <div id="std-hours-dot" class="tl-dot" style="left:0%;background:#34d399;box-shadow:0 0 0 2px rgba(52,211,153,0.35);"></div>
             </div>
         </div>
     </div>
@@ -1404,8 +1405,6 @@ let missingManagerPhone = '';
             document.getElementById('tl-end').textContent   = fmt2(practiceEnd);
             document.getElementById('tl-fill').style.width  = pct + '%';
             document.getElementById('tl-dot').style.left    = pct + '%';
-            document.getElementById('tl-dday').textContent  =
-                dday > 0 ? '종료까지 D-' + dday : dday === 0 ? '오늘 종료' : '실습 완료 ✓';
         }
 
         // UI 업데이트
@@ -1413,8 +1412,12 @@ let missingManagerPhone = '';
         document.getElementById('circle-early').textContent = earlyCount;
         document.getElementById('stat-my-hours').textContent  = totalHours + '시간';
         document.getElementById('stat-std-hours').textContent = stdHours   + '시간';
-        document.getElementById('progress-fill').style.width     = Math.min(Math.round(totalHours / 780 * 100), 100) + '%';
-        document.getElementById('progress-std-fill').style.width = Math.min(Math.round(stdHours   / 780 * 100), 100) + '%';
+        const myPct  = Math.min(Math.round(totalHours / 780 * 100), 100);
+        const stdPct = Math.min(Math.round(stdHours   / 780 * 100), 100);
+        document.getElementById('progress-fill').style.width     = myPct  + '%';
+        document.getElementById('progress-std-fill').style.width = stdPct + '%';
+        document.getElementById('my-hours-dot').style.left       = myPct  + '%';
+        document.getElementById('std-hours-dot').style.left      = stdPct + '%';
         } catch(e) { console.error('통계 로딩 실패', e); }
     loadIntervals();
     }
