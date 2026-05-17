@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>사하제일간호학원 출결시스템</title>
+    <title>Here 출결관리</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Here">
+    <meta name="theme-color" content="#1E3932">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js"></script>
     <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -35,11 +41,7 @@
   window.fsSetDoc = setDoc;
   window.fsUpdateDoc = updateDoc;
   window.fsOnSnapshot = onSnapshot;
-  window.fsCollection = collection;
-  window.fsQuery      = query;
-  window.fsWhere      = where;
-  window.fsGetDocs    = getDocs;
-  window.fsOrderBy    = orderBy;
+
   window.fsArrayUnion = arrayUnion;
   window.fsIncrement = increment;
 
@@ -105,7 +107,22 @@
             min-height:100vh;
             max-width:480px;
             margin:0 auto;
+            position:relative;
         }
+
+        .class-block-overlay {
+            display:none;
+            position:absolute;
+            inset:0;
+            background:rgba(30,30,30,0.88);
+            z-index:500;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:16px;
+            min-height:100vh;
+        }
+        .class-block-overlay.show { display:flex; }
 
         /* 헤더 */
         .header {
@@ -127,6 +144,14 @@
         .circle { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; }
         .stat-label { font-size:9px; color:#666; }
 
+        /* 실습기간 타임라인 */
+        .practice-timeline { margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0; }
+        .tl-dates { display:flex; justify-content:space-between; font-size:10px; color:#aaa; margin-bottom:6px; font-weight:600; }
+        .tl-track { position:relative; height:4px; background:#eeeef5; border-radius:2px; margin:0 2px; }
+        .tl-fill  { height:4px; background:linear-gradient(90deg,#a78bfa,#6c63ff); border-radius:2px; transition:width 0.9s ease; }
+        .tl-dot   { position:absolute; top:50%; width:11px; height:11px; background:#6c63ff; border:2.5px solid #fff; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 0 2px rgba(108,99,255,0.35); transition:left 0.9s ease; }
+        .tl-dday  { text-align:center; font-size:10px; color:#6c63ff; font-weight:700; margin-top:6px; letter-spacing:-0.01em; }
+
         /* 진행률 */
         .progress-card { background:#fff; margin:8px 12px 0; border-radius:14px; padding:11px 14px; border:1px solid #eee; }
         .prog-header { display:flex; justify-content:space-between; margin-bottom:7px; }
@@ -139,6 +164,11 @@
         /* 광고배너 */
         .ad-banner { margin:8px 12px 0; border-radius:14px; overflow:hidden; border:1px solid #eee; display:none; }
         .ad-banner img { width:100%; display:block; }
+
+        /* 결제 경고 배너 */
+        .payment-warning-banner { display:none; margin:8px 12px 0; border-radius:14px; background:#fff7ed; border:1.5px solid #fed7aa; padding:12px 16px; }
+        .payment-warning-banner strong { display:block; font-size:13px; font-weight:700; color:#c2410c; margin-bottom:3px; }
+        .payment-warning-banner span { font-size:12px; color:#92400e; }
 
         /* 누락배너 */
 .missing-banner-item { margin:8px 12px 0; border-radius:14px; cursor:pointer; background:#fff1f2; border:1.5px solid #fca5a5; padding:12px 16px; text-align:center; font-size:13px; font-weight:700; color:#ef4444; }
@@ -285,10 +315,18 @@
         input[type="date"],input[type="file"],input[type="text"],input[type="number"],input[type="tel"] { width:100%; box-sizing:border-box; -webkit-appearance:none; }
 
         #admin-section { display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:#000; color:#fff; z-index:999999; padding:50px 20px 20px; box-sizing:border-box; overflow-y:auto; }
+        #toast-container { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:9999999; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
+        .toast { padding:12px 20px; border-radius:12px; font-size:14px; font-weight:500; color:#fff; max-width:320px; text-align:center; opacity:0; transform:translateY(16px); transition:opacity .25s, transform .25s; pointer-events:none; word-break:keep-all; line-height:1.5; }
+        .toast.show { opacity:1; transform:translateY(0); }
+        .toast.t-success { background:#10b981; }
+        .toast.t-error   { background:#ef4444; }
+        .toast.t-warning { background:#f59e0b; }
+        .toast.t-info    { background:#3b82f6; }
     </style>
 </head>
 <body>
 
+<div id="toast-container"></div>
 <div class="loader" id="loader"></div>
 
 <div id="login-section">
@@ -306,7 +344,7 @@
 <div class="modal-overlay" id="register-modal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
-        <div class="modal-title">신규 등록</div>
+        <div class="modal-title" id="register-modal-title">신규 등록</div>
         <div id="register-step1">
             <label class="form-label">이름</label>
             <input class="form-input" id="reg-name" type="text" placeholder="홍길동 (띄어쓰기 주의)">
@@ -316,23 +354,41 @@
                 <input id="reg-otp" type="number" placeholder="인증번호 6자리">
                 <button onclick="sendRegisterOTP()">문자 받기</button>
             </div>
-            <button class="form-submit" onclick="submitNewStudent()">등록 신청</button>
+            <button class="form-submit" onclick="submitNewStudent()">다음</button>
         </div>
-        <div id="register-step2" style="display:none;text-align:center;padding:20px 0;">
+        <div id="register-step2" style="display:none;">
+            <div style="font-size:13px;color:#666;margin-bottom:16px;line-height:1.6;">원장님께 받은 <strong>학원 코드</strong>를 입력해주세요.<br>코드가 없으면 원장님께 문의하세요.</div>
+            <label class="form-label">학원 코드</label>
+            <input class="form-input" id="reg-academy-code" type="text" placeholder="예: SAHA" style="font-size:20px;font-weight:700;letter-spacing:0.1em;text-align:center;" autocomplete="off">
+            <div id="reg-code-error" style="display:none;color:#ef4444;font-size:12px;margin-top:-6px;margin-bottom:10px;text-align:center;"></div>
+            <button class="form-submit" onclick="submitAcademyCode()">가입 신청</button>
+            <button class="modal-close" onclick="goBackToStep1()" style="margin-top:8px;">← 이전</button>
+        </div>
+        <div id="register-step3" style="display:none;text-align:center;padding:20px 0;">
             <div style="font-size:40px;margin-bottom:12px;">✅</div>
             <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">등록 신청 완료!</div>
-            <div style="font-size:13px;color:#666;">원장님 승인 후 이용 가능합니다.</div>
+            <div style="font-size:13px;color:#666;" id="reg-pending-msg">원장님 승인 후 이용 가능합니다.</div>
         </div>
-        <button class="modal-close" onclick="closeRegisterModal()">닫기</button>
+        <button class="modal-close" id="register-close-btn" onclick="closeRegisterModal()">닫기</button>
     </div>
 </div>
 
 <!-- ===================== 메인 화면 ===================== -->
 <div id="main-section">
 
+    <div class="class-block-overlay" id="class-block-overlay">
+        <div style="font-size:52px;">⏳</div>
+        <div style="color:#fff;font-size:18px;font-weight:700;">원장님 승인 대기 중</div>
+        <div style="color:rgba(255,255,255,0.65);font-size:13px;text-align:center;line-height:1.7;">반 배정 후 앱을 이용하실 수 있습니다.<br>원장님께 문의해주세요.</div>
+    </div>
+
     <div class="header">
         <div class="logo">Here</div>
-        <div class="school-badge">사하제일간호학원</div>
+        <div class="school-badge" id="school-badge">사하제일간호학원</div>
+    </div>
+    <div class="payment-warning-banner" id="payment-warning-banner">
+        <strong>⚠️ 학원 이용료 미납 안내</strong>
+        <span>출결 기능은 정상 이용 가능합니다. 기타 서비스 문의는 원장님께 연락해주세요.</span>
     </div>
 
     <div class="user-card">
@@ -350,11 +406,18 @@
                     <div class="circle" style="background:#eff6ff;border:1px solid #bfdbfe;color:#3b82f6;" id="circle-early">0</div>
                     <div class="stat-label">조퇴</div>
                 </div>
-                <div class="stat-circle">
-                    <div class="circle" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#059669;" id="circle-out">0</div>
-                    <div class="stat-label">외출</div>
-                </div>
             </div>
+        </div>
+        <div class="practice-timeline">
+            <div class="tl-dates">
+                <span id="tl-start">-</span>
+                <span id="tl-end">-</span>
+            </div>
+            <div class="tl-track">
+                <div class="tl-fill" id="tl-fill" style="width:0%"></div>
+                <div class="tl-dot" id="tl-dot" style="left:0%"></div>
+            </div>
+            <div class="tl-dday" id="tl-dday"></div>
         </div>
     </div>
 
@@ -499,7 +562,7 @@
             <div class="sign-sub">날짜를 탭 → 서명 후 일괄적용 하세요</div>
             <div id="bs-student-rows" class="bs-att-table"></div>
             <div class="sign-btns" style="margin-top:10px;">
-                <button class="sign-next" onclick="goSignStep(2)">다음 → 담당자 인증</button>
+                <button class="sign-next" onclick="requireAllStudentSigs()">다음 → 담당자 인증</button>
             </div>
             <button class="modal-close" onclick="closeBottomModal('sign-bottom-modal')">취소</button>
         </div>
@@ -520,7 +583,7 @@
             </div>
             <div id="otp-verify-area" style="display:none;">
                 <div class="otp-row">
-                    <input type="number" id="bs-otp-input" placeholder="인증번호 4자리">
+                    <input type="number" id="bs-otp-input" placeholder="인증번호 6자리">
                     <button onclick="verifyBsOTP()">확인</button>
                 </div>
             </div>
@@ -811,7 +874,39 @@
 </div>
 
 <!-- 원장님 섹션 -->
-<div id="admin-section"></div>
+<!-- 원장님 버전 선택 오버레이 -->
+<div id="admin-version-overlay" style="display:none;position:fixed;inset:0;background:rgba(30,57,50,0.92);z-index:999998;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:40px 32px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="font-size:32px;margin-bottom:8px;">☕</div>
+    <div style="font-size:20px;font-weight:700;color:#006241;margin-bottom:6px;letter-spacing:-0.01em;">관리자 환경 선택</div>
+    <div style="font-size:13px;color:rgba(0,0,0,0.58);margin-bottom:28px;">사용 중인 기기를 선택해주세요.<br>다음 로그인 시 자동으로 이동합니다.</div>
+    <button onclick="selectAdminVersion('mobile')" style="width:100%;padding:16px;background:#fff;border:1.5px solid #00754A;color:#00754A;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;letter-spacing:-0.01em;">📱 모바일 — 빠른 확인</button>
+    <button onclick="selectAdminVersion('pc')"     style="width:100%;padding:16px;background:#00754A;border:none;color:#fff;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:-0.01em;">🖥️ PC — 전체 기능</button>
+    <div style="margin-top:16px;font-size:11px;color:rgba(0,0,0,0.4);">설정은 언제든 변경 가능합니다</div>
+  </div>
+</div>
+
+
+    <!-- PIN/비밀번호 인증 모달 -->
+<div class="sig-modal-overlay" id="pin-modal" style="z-index:10000;">
+    <div class="sig-modal-card">
+        <div class="sig-modal-title" id="pin-modal-title">🔐 비밀번호 입력</div>
+        <p id="pin-modal-desc" style="font-size:13px;color:#64748b;text-align:center;margin-bottom:16px;"></p>
+        <input type="password" id="pin-input" placeholder="숫자 4~6자리"
+            style="width:100%;padding:14px;font-size:22px;text-align:center;border:2px solid #e2e8f0;border-radius:12px;outline:none;box-sizing:border-box;letter-spacing:6px;margin-bottom:8px;"
+            maxlength="6" inputmode="numeric">
+        <input type="password" id="pin-confirm-input" placeholder="비밀번호 재입력"
+            style="width:100%;padding:14px;font-size:22px;text-align:center;border:2px solid #e2e8f0;border-radius:12px;outline:none;box-sizing:border-box;letter-spacing:6px;display:none;margin-bottom:8px;"
+            maxlength="6" inputmode="numeric">
+        <p id="pin-error-msg" style="color:#ef4444;font-size:12px;text-align:center;min-height:18px;margin-bottom:8px;"></p>
+        <button onclick="confirmPin()"
+            style="width:100%;padding:14px;background:#6c63ff;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">확인</button>
+        <button id="pin-biometric-btn" onclick="retryBiometric()"
+            style="width:100%;padding:12px;background:#f0f7ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:none;">
+            🔒 생체인증으로 재시도
+        </button>
+    </div>
+</div>
 <!-- 담당자 OTP 인증 모달 (서명섹션용) -->
 <div class="sig-modal-overlay" id="sig-otp-modal" style="z-index:5000;">
     <div class="sig-modal-card">
@@ -824,9 +919,9 @@
             </div>
         </div>
         <div id="sig-otp-code-area" style="display:none;">
-            <p style="font-size:13px;color:#64748b;margin-bottom:10px;text-align:center;">인증번호 4자리를 입력해주세요</p>
+            <p style="font-size:13px;color:#64748b;margin-bottom:10px;text-align:center;">인증번호 6자리를 입력해주세요</p>
             <div class="otp-row">
-    <input type="number" id="sig-otp-code" placeholder="인증번호 4자리">
+    <input type="number" id="sig-otp-code" placeholder="인증번호 6자리">
     <button onclick="verifySigOTP()">확인</button>
 </div>
 <label style="font-size:11px;color:#475569;display:flex;align-items:flex-start;gap:6px;cursor:pointer;margin-top:10px;">
@@ -853,16 +948,18 @@ let missingManagerPhone = '';
     let sigOtpCallback = null;
     let currentRecordData = [];
 
-    const CONFIG = {
+        const CONFIG = {
         KAKAO_KEY: '256604f2f245388033b0226667539d5f',
-        GAS_URL: 'https://script.google.com/macros/s/AKfycbyoAnovdhUkm5Q6UZJs69-U-hR3QndY5pPK-lbXlj5wQTRn_b3coewDpAPbH8CoNuWsTw/exec',
+        GAS_URL: 'https://script.google.com/macros/s/AKfycbzOGDthNKozJV9j3RIRqgsipHfvYhj_YJ3YZG42RRIdSPRAv51F-pDTu2VHhC2qSMY25Q/exec',
         SESSION_DURATION: 120 * 60 * 1000,
         MAX_DISTANCE: 30,
         GPS_TIMEOUT: 20000,
-        GPS_MAX_AGE: 0
+        GPS_MAX_AGE: 0,
+        ACADEMY_ID: 'saha'
     };
 
         let currentUser = { kakaoId:null, name:null, hospital:null, hospitalLat:null, hospitalLon:null };
+    let _pendingReg = null;
     let sessionTimer = null;
     let remainingTime = CONFIG.SESSION_DURATION;
     let watchedPosition = null;
@@ -885,51 +982,54 @@ let missingManagerPhone = '';
             try {
                 const response = await fetch(CONFIG.GAS_URL, {
                     method:'POST', headers:{'Content-Type':'text/plain'},
-                    body: JSON.stringify({ action:'getKakaoUser', code, redirect_uri:'https://knadlg1.github.io/sahanurse-attendance/' })
+                    body: JSON.stringify({ action:'getKakaoUser', code, redirect_uri:'https://knadlg1.github.io/saha-attendance/' })
                 });
                 const result = await response.json();
                                 if (result.kakaoId) {
                     currentUser.kakaoId = result.kakaoId;
                     localStorage.setItem('realKakaoId', result.kakaoId);
-                    initializeSession();
+                                        initializeSession();
                     const cached = localStorage.getItem('cachedUserData');
                     if (cached) {
-                        Object.assign(currentUser, JSON.parse(cached));
-                        await verifyStudent();
-                    } else {
-                        await verifyStudent();
+                        const data = JSON.parse(cached);
+                        delete data.role;
+                        Object.assign(currentUser, data);
                     }
+                    await verifyStudent();
                 } else {
                     showLoader(false);
                     const savedId = localStorage.getItem('realKakaoId');
                     if (savedId) { currentUser.kakaoId = savedId; initializeSession(); await verifyStudent(); }
-                    else { alert('카카오 로그인 실패.\n다시 시도해주세요.'); initializeSession(); }
+                    else { showToast('카카오 로그인 실패.\n다시 시도해주세요.', 'error'); initializeSession(); }
                 }
             } catch(e) {
                 showLoader(false);
                 const savedId = localStorage.getItem('realKakaoId');
                 if (savedId) { currentUser.kakaoId = savedId; initializeSession(); await verifyStudent(); }
-                else { alert('서버 연결 실패.\n새로고침 해주세요.'); initializeSession(); }
+                else { showToast('서버 연결 실패.\n새로고침 해주세요.', 'error'); initializeSession(); }
             }
         } else {
             initializeSession();
             checkMidnightReset();
             preventBackButton();
-            const savedId = localStorage.getItem('realKakaoId');
+                        const savedId = localStorage.getItem('realKakaoId');
             if (savedId) {
                 currentUser.kakaoId = savedId;
                 const savedUser = sessionStorage.getItem('currentUser');
-                if (savedUser) { currentUser = JSON.parse(savedUser); await verifyStudent(); }
-                else { await verifyStudent(); }
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    currentUser.kakaoId = savedId;  // realKakaoId 항상 유지
+                }
+                await verifyStudent();
             }
         }
     }
 
     // ==================== 카카오 로그인 ====================
     function loginWithKakao() {
-        if (remainingTime <= 0) { alert('세션 만료. 새로고침 해주세요.'); return; }
+        if (remainingTime <= 0) { showToast('세션 만료. 새로고침 해주세요.', 'warning'); return; }
         const REST_API_KEY = 'ca34b3c2a0cf2d0fe87d9f18b39aa8d8';
-        const REDIRECT_URI = 'https://knadlg1.github.io/sahanurse-attendance/';
+        const REDIRECT_URI = 'https://knadlg1.github.io/saha-attendance/';
         const kakaoURL = `https://kauth.kakao.com/oauth/authorize?client_id=${REST_API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code`;
         window.location.href = kakaoURL;
     }
@@ -979,13 +1079,14 @@ let missingManagerPhone = '';
             const docRef = window.fsDoc(window.db, 'students', String(currentUser.kakaoId));
             const docSnap = await window.fsGetDoc(docRef);
             if (docSnap.exists()) {
-                const s = docSnap.data();
-                if (s.status === 'pending') {
-                    result = { status: 'pending', name: s.name };
-                                } else {
-                    result = { ...s, status: 'found' };
-                }
-            }
+    const s = docSnap.data();
+    if (s.status === 'pending') {
+        result = { status: 'pending', name: s.name };
+                } else {
+        result = { ...s, status: 'found' };
+    }
+} else {
+}
         } catch(fsErr) {
             console.warn('Firestore 조회 실패, GAS로 폴백:', fsErr);
         }
@@ -1010,31 +1111,36 @@ let missingManagerPhone = '';
                 const authOk = await ensureWebAuthn(currentUser.kakaoId, result.name);
                 if (!authOk) {
                     showLoader(false);
-                    alert('생체 인증에 실패했습니다.\n다시 시도해주세요.');
+                    showToast('생체 인증에 실패했습니다.\n다시 시도해주세요.', 'error');
                     return;
                 }
             }
 
-            currentUser.name        = result.name;
-            currentUser.phone       = result.phone;
-            currentUser.hospital    = result.hospital;
-            currentUser.hospitalLat = result.hospitalLat;
-            currentUser.hospitalLon = result.hospitalLon;
-            currentUser.intervals   = result.intervals;
-            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-            localStorage.setItem('cachedUserData', JSON.stringify(currentUser));
+                currentUser.name        = result.name;
+    currentUser.phone       = result.phone;
+    currentUser.hospital    = result.hospital;
+    currentUser.hospitalLat = result.hospitalLat;
+    currentUser.hospitalLon = result.hospitalLon;
+    currentUser.intervals   = result.intervals;
+    currentUser.role        = result.role || 'student';
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    localStorage.setItem('cachedUserData', JSON.stringify(currentUser));
 
-            if (!silent) {
-                showLoader(false);
-                showMainSection();
-                                Promise.all([checkTodayStatus(), loadStudentStats(), loadIntervals()]);
-            } else {
-                document.getElementById('user-name').textContent     = currentUser.name     || '';
-                document.getElementById('user-hospital').textContent = currentUser.hospital || '';
-            }
+    if (!silent) {
+        showLoader(false);
+        if (currentUser.role === 'admin') {
+    showAdminSection();
+        } else {
+            showMainSection();
+            Promise.all([checkTodayStatus(), loadStudentStats(), loadIntervals()]);
+        }
+    } else {
+        document.getElementById('user-name').textContent     = currentUser.name     || '';
+        document.getElementById('user-hospital').textContent = currentUser.hospital || '';
+    }
         } else if (result.status === 'pending') {
             showLoader(false);
-            alert('⏳ 원장님 승인 대기 중입니다.\n승인 후 이용 가능합니다.');
+            showToast('⏳ 원장님 승인 대기 중입니다.\n승인 후 이용 가능합니다.', 'warning');
         } else {
             if (silent) return;
             showLoader(false);
@@ -1198,7 +1304,36 @@ let missingManagerPhone = '';
             } else {
                 document.getElementById('urgent-request-banner').style.display = 'none';
             }
+            // 반 미배정 시 앱 사용 차단
+            if (!sd.classId) {
+                document.getElementById('class-block-overlay').classList.add('show');
+            } else {
+                document.getElementById('class-block-overlay').classList.remove('show');
+            }
         }
+
+        // 학원명 뱃지 업데이트
+        try {
+            const acId = (studentSnap.exists() && studentSnap.data().academyId) || CONFIG.ACADEMY_ID;
+            const acSnap = await window.fsGetDoc(window.fsDoc(window.db, 'academies', acId));
+            if (acSnap.exists() && acSnap.data().name) {
+                document.getElementById('school-badge').textContent = acSnap.data().name;
+            }
+        } catch(e) { /* 학원 컬렉션 없으면 기본값 유지 */ }
+
+        // 원장님 결제 상태 확인 (학생 출결엔 영향 없음, 배너만 표시)
+        try {
+            const acId = (studentSnap.exists() && studentSnap.data().academyId) || CONFIG.ACADEMY_ID;
+            const dirQ = window.fsQuery(
+                window.fsCollection(window.db, 'directors'),
+                window.fsWhere('academyId', '==', acId),
+                window.fsWhere('status', '==', 'approved')
+            );
+            const dirSnap = await window.fsGetDocs(dirQ);
+            let overdue = false;
+            dirSnap.forEach(d => { if (d.data().paymentStatus === 'overdue') overdue = true; });
+            document.getElementById('payment-warning-banner').style.display = overdue ? 'block' : 'none';
+        } catch(e) { /* 결제 컬렉션 없으면 무시 */ }
 
         // 출결 기록 전체 조회
         const q = window.fsQuery(
@@ -1211,19 +1346,22 @@ let missingManagerPhone = '';
         snap.forEach(d => {
             const rec = d.data();
             if (!rec.inTime || !rec.outTime) return;
+            // 실습 기간 범위 밖은 제외
+            if (!rec.date || rec.date < practiceStart || rec.date > practiceEnd) return;
             const [inH, inM]   = rec.inTime.split(':').map(Number);
             const [outH, outM] = rec.outTime.split(':').map(Number);
-            const rawMins = (outH * 60 + outM) - (inH * 60 + inM);
+            const effectiveIn  = Math.max(inH * 60 + inM, 540); // 09:00 이전 출근은 09:00 기준
+            const rawMins = (outH * 60 + outM) - effectiveIn;
             if (rawMins <= 0) return;
-            // 4시간 초과 시 30분 휴게 차감
-            const workMins = rawMins > 240 ? rawMins - 30 : rawMins;
+            // 휴게 차감: 4시간 초과~8시간=30분, 8시간 초과=60분
+            const workMins = rawMins > 480 ? rawMins - 60 : rawMins > 240 ? rawMins - 30 : rawMins;
             totalMinutes += workMins;
             // 주말 제외하고 지각/조퇴 판단
-            const dow = rec.date ? new Date(rec.date + 'T00:00:00').getDay() : -1;
+            const dow = new Date(rec.date + 'T00:00:00').getDay();
             const isWeekend = dow === 0 || dow === 6;
             if (!isWeekend) {
-                if (inH * 60 + inM > 540)  tardyCount++; // 09:01 이상
-                if (outH * 60 + outM < 989) earlyCount++; // 16:29 미만
+                if (effectiveIn > 540)        tardyCount++; // 09:01 이상
+                if (outH * 60 + outM < 989)   earlyCount++; // 16:29 미만
             }
         });
         const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
@@ -1247,14 +1385,31 @@ let missingManagerPhone = '';
             }
             return count;
         }
-        const today   = new Date().toISOString().slice(0, 10);
+        const today   = todayKST();
         const capDate = today < practiceEnd ? today : practiceEnd;
         const stdHours = countWorkDays(practiceStart, capDate) * 7;
+
+        // 실습기간 타임라인 업데이트
+        {
+            const tlS = new Date(practiceStart + 'T00:00:00');
+            const tlE = new Date(practiceEnd   + 'T00:00:00');
+            const tlT = new Date(todayKST()    + 'T00:00:00');
+            const totalDays   = (tlE - tlS) / 86400000;
+            const elapsedDays = Math.max(0, Math.min((tlT - tlS) / 86400000, totalDays));
+            const pct  = totalDays > 0 ? Math.round(elapsedDays / totalDays * 100) : 0;
+            const dday = Math.ceil((tlE - tlT) / 86400000);
+            const fmt2 = s => s.slice(2).replace(/-/g, '.');
+            document.getElementById('tl-start').textContent = fmt2(practiceStart);
+            document.getElementById('tl-end').textContent   = fmt2(practiceEnd);
+            document.getElementById('tl-fill').style.width  = pct + '%';
+            document.getElementById('tl-dot').style.left    = pct + '%';
+            document.getElementById('tl-dday').textContent  =
+                dday > 0 ? '종료까지 D-' + dday : dday === 0 ? '오늘 종료' : '실습 완료 ✓';
+        }
 
         // UI 업데이트
         document.getElementById('circle-tardy').textContent = tardyCount;
         document.getElementById('circle-early').textContent = earlyCount;
-        document.getElementById('circle-out').textContent   = 0;
         document.getElementById('stat-my-hours').textContent  = totalHours + '시간';
         document.getElementById('stat-std-hours').textContent = stdHours   + '시간';
         document.getElementById('progress-fill').style.width     = Math.min(Math.round(totalHours / 780 * 100), 100) + '%';
@@ -1267,7 +1422,7 @@ let missingManagerPhone = '';
     function checkMissingSignatures() {
         if (!currentUser.intervals) return;
         const hasPending = currentUser.intervals.some(i => i.status === 'available');
-        if (hasPending) alert("🚨 [학원 알림]\n밀린 실습근무카드 서명이 있습니다!\n출퇴근 처리 후 반드시 서명을 완료해주세요.");
+        if (hasPending) showToast("🚨 [학원 알림]\n밀린 실습근무카드 서명이 있습니다!\n출퇴근 처리 후 반드시 서명을 완료해주세요.", 'warning');
     }
     async function doCheckIn()  { checkMissingSignatures(); await processAttendance('출근'); }
     async function doCheckOut() { checkMissingSignatures(); await processAttendance('퇴근'); }
@@ -1286,7 +1441,7 @@ let missingManagerPhone = '';
         if (!authOk) {
             overlay.style.display = 'none';
             if (type === '출근') inBtn.disabled = false; else outBtn.disabled = false;
-            alert('본인 인증에 실패했습니다.\n등록된 기기에서 다시 시도해주세요.');
+            showToast('본인 인증에 실패했습니다.\n등록된 기기에서 다시 시도해주세요.', 'error');
             return;
         }
 
@@ -1300,7 +1455,7 @@ let missingManagerPhone = '';
             if (dist > allowedDist) {
                 overlay.style.display = 'none';
                 if (type === '출근') inBtn.disabled = false; else outBtn.disabled = false;
-                alert(`📍 병원에서 ${Math.round(dist)}m 떨어져 있습니다.\n(허용: ${Math.round(allowedDist)}m 이내)`);
+                showToast(`📍 병원에서 ${Math.round(dist)}m 떨어져 있습니다.\n(허용: ${Math.round(allowedDist)}m 이내)`, 'warning');
                 return;
             }
 
@@ -1360,19 +1515,19 @@ let missingManagerPhone = '';
                     badge.className = 'new-status-badge done'; badge.textContent = '실습 완료';
                 }
             } else if (result.status === 'duplicate') {
-                alert(type + ' 처리가 이미 완료되었습니다.');
+                showToast(type + ' 처리가 이미 완료되었습니다.', 'success');
                 if (type === '출근') inBtn.disabled = true; else outBtn.disabled = true;
             } else {
-                alert('❌ 처리 실패: ' + (result.message || ''));
+                showToast('❌ 처리 실패: ' + (result.message || ''), 'error');
                 if (type === '출근') inBtn.disabled = false; else outBtn.disabled = false;
             }
         } catch(error) {
             overlay.style.display = 'none';
             if (type === '출근') inBtn.disabled = false; else outBtn.disabled = false;
-            if (error.code === 1) alert('📍 위치 권한을 허용해주세요.');
-            else if (error.code === 2) alert('📍 GPS 기능을 켜주세요.');
-            else if (error.code === 3) alert('📍 실외나 창가로 이동해주세요.');
-            else alert('❌ 오류가 발생했습니다. 다시 시도해주세요.');
+            if (error.code === 1) showToast('📍 위치 권한을 허용해주세요.', 'error');
+            else if (error.code === 2) showToast('📍 GPS 기능을 켜주세요.', 'error');
+            else if (error.code === 3) showToast('📍 실외나 창가로 이동해주세요.', 'error');
+            else showToast('❌ 오류가 발생했습니다. 다시 시도해주세요.', 'error');
         }
     }
 
@@ -1443,23 +1598,19 @@ let missingManagerPhone = '';
         function openLastInterval() {
         if (!currentUser.intervals) return;
         const availIdx = currentUser.intervals.findIndex(i => i.status === 'available');
-        if (availIdx === -1) { alert('현재 서명 가능한 회차가 없습니다.'); return; }
+        if (availIdx === -1) { showToast('현재 서명 가능한 회차가 없습니다.', 'error'); return; }
         startBsSign(availIdx);
     }
 
-    window.insertTestData = async function() {
-        if (!window.db || !currentUser.kakaoId) { alert('로그인 후 콘솔에서 실행해주세요.'); return; }
-        try {
-            const stuRef = window.fsDoc(window.db, 'students', String(currentUser.kakaoId));
-            await window.fsUpdateDoc(stuRef, { practiceStart: '2026-04-27', practiceEnd: '2026-07-18' });
-            const testDates = ['2026-05-04','2026-05-05','2026-05-06','2026-05-07','2026-05-08'];
-            for (const dt of testDates) {
-                const ref = window.fsDoc(window.db, 'attendance', String(currentUser.kakaoId)+'_'+dt);
-                await window.fsSetDoc(ref, { kakaoId:currentUser.kakaoId, name:currentUser.name, date:dt, inTime:'09:00', outTime:'18:00', workMinutes:540 }, { merge:true });
-            }
-            alert('✅ 테스트 데이터 삽입 완료!\n새로고침하면 지난주(05/04~05/10) 서명하기 버튼이 나타납니다.');
-        } catch(e) { alert('삽입 실패: ' + e.message); }
-    };
+
+    function requireAllStudentSigs() {
+        const unsigned = bsAttendanceRows.filter(r => !r.studentSig);
+        if (unsigned.length > 0) {
+            showToast(unsigned.length + '개 날짜에 학생 서명이 없습니다.', 'error');
+            return;
+        }
+        goSignStep(2);
+    }
 
     function goSignStep(step) {
     document.querySelectorAll('.sign-step').forEach(el => el.classList.remove('active'));
@@ -1500,8 +1651,8 @@ let missingManagerPhone = '';
 
     async function requestBsOTP() {
     const phone = document.getElementById('bs-manager-phone').value.trim();
-    if (!phone) { alert('휴대폰 번호를 입력해주세요.'); return; }
-    if (!document.getElementById('bs-otp-consent-check').checked) { alert('개인정보 수집 동의를 체크해주세요.'); return; }
+    if (!phone) { showToast('휴대폰 번호를 입력해주세요.', 'info'); return; }
+    if (!document.getElementById('bs-otp-consent-check').checked) { showToast('개인정보 수집 동의를 체크해주세요.', 'info'); return; }
     bsManagerPhone = phone;
     showLoader(true);
     try {
@@ -1513,26 +1664,29 @@ let missingManagerPhone = '';
         if (result.status === 'success') {
             document.getElementById('otp-request-area').style.display = 'none';
             document.getElementById('otp-verify-area').style.display = 'block';
-            alert('인증번호가 발송되었습니다.');
-        } else { alert('발송 실패: ' + (result.message||'')); }
-    } catch(e) { showLoader(false); alert('서버 오류.'); }
+            showToast('인증번호가 발송되었습니다.', 'success');
+        } else { showToast('발송 실패: ' + (result.message||''), 'error'); }
+    } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
 }
 
         async function verifyBsOTP() {
     const otp = document.getElementById('bs-otp-input').value.trim();
-    if (!otp) { alert('인증번호를 입력해주세요.'); return; }
-    if (otp === '0000') { alert('인증 완료! 담당자 서명을 받아주세요.'); goSignStep(3); return; }
+    if (!otp) { showToast('인증번호를 입력해주세요.', 'info'); return; }
         showLoader(true);
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'verifyOTP', otp, phone:bsManagerPhone }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status === 'success') { alert('인증 완료! 담당자 서명을 받아주세요.'); goSignStep(3); }
-            else { alert('인증번호가 일치하지 않습니다.'); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status === 'success') { showToast('인증 완료! 담당자 서명을 받아주세요.', 'success'); goSignStep(3); }
+            else { showToast('인증번호가 일치하지 않습니다.', 'info'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
 
     async function executeBsSubmit() {
+    const missingStu = bsAttendanceRows.filter(r => !r.studentSig);
+    const missingMgr = bsAttendanceRows.filter(r => !r.managerSig);
+    if (missingStu.length > 0) { showToast(missingStu.length + '개 날짜에 학생 서명이 없습니다.', 'error'); return; }
+    if (missingMgr.length > 0) { showToast(missingMgr.length + '개 날짜에 담당자 서명이 없습니다.', 'error'); return; }
     showLoader(true);
     try {
         const sigRef = window.fsDoc(window.db, 'weeklySignatures',
@@ -1546,15 +1700,15 @@ let missingManagerPhone = '';
             managerPhone: bsManagerPhone,
             attendance: bsAttendanceRows.map(r => ({
                 date: r.date, inTime: r.inTime, outTime: r.outTime,
-                studentSig: r.studentSig || '', managerSig: r.managerSig || ''
+                studentSig: r.studentSig, managerSig: r.managerSig
             })),
             submittedAt: new Date().toISOString()
         });
         showLoader(false);
-        alert('🎉 실습근무카드 서명이 완료되었습니다!');
+        showToast('🎉 실습근무카드 서명이 완료되었습니다!', 'success');
         closeBottomModal('sign-bottom-modal');
         location.reload();
-    } catch(e) { showLoader(false); alert('저장 실패: ' + e.message); }
+    } catch(e) { showLoader(false); showToast('저장 실패: ' + e.message, 'error'); }
 }
 
     // ==================== 실습인증 서명 (새 플로우) ====================
@@ -1633,7 +1787,7 @@ function applyBsSig(applyAll) {
     const data = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
     let hasContent = false;
     for (let i=3; i<data.length; i+=4) { if (data[i]>0) { hasContent=true; break; } }
-    if (!hasContent) { alert('서명을 먼저 그려주세요.'); return; }
+    if (!hasContent) { showToast('서명을 먼저 그려주세요.', 'info'); return; }
     const sigData = c.toDataURL('image/png').split(',')[1];
     if (applyAll) {
         bsAttendanceRows.forEach(row => { if (bsSigPadType==='student') row.studentSig=sigData; else row.managerSig=sigData; });
@@ -1719,15 +1873,15 @@ async function loadIntervals() {
         const practiceStart = sd.practiceStart || '2026-02-02';
         const practiceEnd   = sd.practiceEnd   || '2026-07-18';
         const computed = computeIntervals(practiceStart, practiceEnd);
-        const today = fmt(new Date());
+        const today = todayKST();
         const intervals = await Promise.all(computed.map(async inv => {
             try {
                 // 이 주 다음 월요일 = 일요일(endDate) + 1일
                 const nextMon = new Date(inv.endDate + 'T00:00:00');
                 nextMon.setDate(nextMon.getDate() + 1);
                 const nextMonStr = fmt(nextMon);
-                // 아직 다음 월요일 안됨 → 잠금
-                if (today < nextMonStr) return { ...inv, status:'locked' };
+                // 아직 다음 월요일 안됨 → 잠금 (TEST BYPASS: 조건 비활성화)
+                if (false && today < nextMonStr) return { ...inv, status:'locked' };
                 // 이미 서명 완료 확인
                 const sigRef = window.fsDoc(window.db, 'weeklySignatures', String(currentUser.kakaoId)+'_'+inv.startDate);
                 const sigSnap = await window.fsGetDoc(sigRef);
@@ -1763,8 +1917,8 @@ async function loadIntervals() {
         const dateInput = document.getElementById('sick-leave-date').value;
         const fileInput = document.getElementById('sick-leave-files');
         const btn = document.getElementById('sick-submit-btn');
-        if (!dateInput) { alert('날짜를 선택해주세요.'); return; }
-        if (fileInput.files.length === 0) { alert('최소 1장 이상 첨부해주세요.'); return; }
+        if (!dateInput) { showToast('날짜를 선택해주세요.', 'info'); return; }
+        if (fileInput.files.length === 0) { showToast('최소 1장 이상 첨부해주세요.', 'info'); return; }
         btn.disabled = true; btn.textContent = '업로드 중...⏳';
         try {
             const base64Images = [];
@@ -1774,9 +1928,9 @@ async function loadIntervals() {
             }
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'uploadProofDocument', kakaoId:currentUser.kakaoId, name:currentUser.name, requestType:'자진제출', date:dateInput, images:base64Images }) });
             const result = await response.json();
-            if (result.status === 'success') { alert('✅ 서류 제출 완료!'); closeBottomModal('sick-bottom-modal'); location.reload(); }
-            else { alert('❌ 제출 실패: ' + result.message); }
-        } catch(e) { alert('서버 오류로 업로드 실패.'); }
+            if (result.status === 'success') { showToast('✅ 서류 제출 완료!', 'success'); closeBottomModal('sick-bottom-modal'); location.reload(); }
+            else { showToast('❌ 제출 실패: ' + result.message, 'error'); }
+        } catch(e) { showToast('서버 오류로 업로드 실패.', 'error'); }
         finally { btn.disabled = false; btn.textContent = '서류 제출하기'; }
     }
 
@@ -1793,8 +1947,8 @@ async function loadIntervals() {
         const dateInput = document.getElementById('sick-leave-date-popup').value;
         const fileInput = document.getElementById('sick-leave-files-popup');
         const btn = document.getElementById('sick-submit-btn-popup');
-        if (!dateInput) { alert('날짜를 선택해주세요.'); return; }
-        if (fileInput.files.length === 0) { alert('최소 1장 이상 첨부해주세요.'); return; }
+        if (!dateInput) { showToast('날짜를 선택해주세요.', 'info'); return; }
+        if (fileInput.files.length === 0) { showToast('최소 1장 이상 첨부해주세요.', 'info'); return; }
         btn.disabled = true; btn.textContent = '업로드 중...⏳';
         try {
             const base64Images = [];
@@ -1804,9 +1958,9 @@ async function loadIntervals() {
             }
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'uploadProofDocument', kakaoId:currentUser.kakaoId, name:currentUser.name, requestType:currentPendingRequest||'자진제출', date:dateInput, images:base64Images }) });
             const result = await response.json();
-            if (result.status === 'success') { alert('✅ 서류 제출 완료!'); closeSickLeaveModal(); location.reload(); }
-            else { alert('❌ 제출 실패: ' + result.message); }
-        } catch(e) { alert('서버 오류.'); }
+            if (result.status === 'success') { showToast('✅ 서류 제출 완료!', 'success'); closeSickLeaveModal(); location.reload(); }
+            else { showToast('❌ 제출 실패: ' + result.message, 'error'); }
+        } catch(e) { showToast('서버 오류.', 'error'); }
         finally { btn.disabled = false; btn.textContent = '제출'; }
     }
 
@@ -1825,9 +1979,9 @@ async function loadIntervals() {
         const start = document.getElementById('cert-start').value;
         const end   = document.getElementById('cert-end').value;
         const btn   = document.getElementById('cert-submit-btn');
-        if (!rrn.match(/^\d{6}-\d{1}$/)) { alert('주민등록번호를 올바르게 입력해주세요.\n(예: 940219-1)'); return; }
-        if (!start || !end) { alert('기간을 선택해주세요.'); return; }
-        if (start > end)    { alert('종료일이 시작일보다 빠를 수 없습니다.'); return; }
+        if (!rrn.match(/^\d{6}-\d{1}$/)) { showToast('주민등록번호를 올바르게 입력해주세요.\n(예: 940219-1)', 'info'); return; }
+        if (!start || !end) { showToast('기간을 선택해주세요.', 'info'); return; }
+        if (start > end)    { showToast('종료일이 시작일보다 빠를 수 없습니다.', 'error'); return; }
         btn.disabled = true; btn.textContent = '요청 중...⏳';
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'generateCertificate', kakaoId:currentUser.kakaoId, rrn, startDate:start, endDate:end }) });
@@ -1839,11 +1993,11 @@ async function loadIntervals() {
                     await window.fsUpdateDoc(docRef, { certStatus: 'requested', certRequestedAt: new Date().toISOString() });
                 } catch(fsErr) { console.warn('Firestore 상태 저장 실패:', fsErr); }
                 updateCertBubble('requested');
-                alert('🎉 수강증명서 발급 요청 완료!\n원장님 승인 후 다운로드 가능합니다.');
+                showToast('🎉 수강증명서 발급 요청 완료!\n원장님 승인 후 다운로드 가능합니다.', 'success');
                 closeBottomModal('cert-bottom-modal');
             }
-            else { alert('❌ 발급 실패: ' + result.message); }
-        } catch(e) { alert('서버 연결 실패.'); }
+            else { showToast('❌ 발급 실패: ' + result.message, 'error'); }
+        } catch(e) { showToast('서버 연결 실패.', 'error'); }
         finally { btn.disabled = false; btn.textContent = '발급하기'; }
     }
 
@@ -1934,7 +2088,27 @@ async function loadIntervals() {
     }
 
     // ==================== 유틸 ====================
+    function todayKST() {
+        const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        return kst.getUTCFullYear() + '-' +
+               String(kst.getUTCMonth() + 1).padStart(2, '0') + '-' +
+               String(kst.getUTCDate()).padStart(2, '0');
+    }
+
     function showLoader(show) { document.getElementById('loader').style.display = show ? 'block' : 'none'; }
+
+    function showToast(msg, type = 'info') {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = 'toast t-' + type;
+        t.textContent = msg;
+        c.appendChild(t);
+        requestAnimationFrame(() => { t.classList.add('show'); });
+        setTimeout(() => {
+            t.classList.remove('show');
+            setTimeout(() => t.remove(), 300);
+        }, 3000);
+    }
 
     async function fetchWithRetry(url, options, retries=3) {
     for (let i=0; i<retries; i++) {
@@ -1976,9 +2150,17 @@ async function loadIntervals() {
     }
     // ==================== 신규 등록 ====================
 function openRegisterModal() {
-    document.getElementById('register-modal').classList.add('open');
+    _pendingReg = null;
+    document.getElementById('reg-name').value = '';
+    document.getElementById('reg-phone').value = '';
+    document.getElementById('reg-otp').value = '';
+    document.getElementById('reg-academy-code').value = '';
+    document.getElementById('reg-code-error').style.display = 'none';
     document.getElementById('register-step1').style.display = 'block';
     document.getElementById('register-step2').style.display = 'none';
+    document.getElementById('register-step3').style.display = 'none';
+    document.getElementById('register-close-btn').style.display = 'none';
+    document.getElementById('register-modal').classList.add('open');
 }
 function closeRegisterModal() {
     document.getElementById('register-modal').classList.remove('open');
@@ -1986,24 +2168,24 @@ function closeRegisterModal() {
 
 async function sendRegisterOTP() {
     const phone = document.getElementById('reg-phone').value.trim();
-    if (!/^01[0-9]{8,9}$/.test(phone)) { alert('휴대폰번호를 정확히 입력해주세요.'); return; }
+    if (!/^01[0-9]{8,9}$/.test(phone)) { showToast('휴대폰번호를 정확히 입력해주세요.', 'info'); return; }
     try {
         const res = await fetchWithRetry(CONFIG.GAS_URL, {
             body: JSON.stringify({ action:'requestOTP', phone, kakaoId:'new', name:'신규' })
         });
         const r = await res.json();
-        if (r.status === 'success') alert('인증번호가 전송되었습니다.');
-        else alert('전송 실패. 다시 시도해주세요.');
-    } catch(e) { alert('서버 오류. 다시 시도해주세요.'); }
+        if (r.status === 'success') showToast('인증번호가 전송되었습니다.', 'info');
+        else showToast('전송 실패. 다시 시도해주세요.', 'error');
+    } catch(e) { showToast('서버 오류. 다시 시도해주세요.', 'error'); }
 }
 
 async function submitNewStudent() {
     const name  = document.getElementById('reg-name').value.trim();
     const phone = document.getElementById('reg-phone').value.trim();
     const otp   = document.getElementById('reg-otp').value.trim();
-    if (!name)  { alert('이름을 입력해주세요.'); return; }
-    if (!/^01[0-9]{8,9}$/.test(phone)) { alert('휴대폰번호를 정확히 입력해주세요.'); return; }
-    if (!otp)   { alert('인증번호를 입력해주세요.'); return; }
+    if (!name)  { showToast('이름을 입력해주세요.', 'info'); return; }
+    if (!/^01[0-9]{8,9}$/.test(phone)) { showToast('휴대폰번호를 정확히 입력해주세요.', 'info'); return; }
+    if (!otp)   { showToast('인증번호를 입력해주세요.', 'info'); return; }
 
     showLoader(true);
     try {
@@ -2012,26 +2194,164 @@ async function submitNewStudent() {
             body: JSON.stringify({ action:'verifyOTP', otp, phone })
         });
         const otpResult = await otpRes.json();
-        if (otpResult.status !== 'success') { showLoader(false); alert('인증번호가 올바르지 않습니다.'); return; }
-
-        // 신규 등록 (pending 상태로)
-        const regRes = await fetchWithRetry(CONFIG.GAS_URL, {
-            body: JSON.stringify({ action:'registerStudent', kakaoId:currentUser.kakaoId, name, phone, status:'pending' })
-        });
-        const regResult = await regRes.json();
         showLoader(false);
-        if (regResult.status === 'success' || regResult.status === 'pending') {
-            try {
-                const docRef = window.fsDoc(window.db, 'students', String(currentUser.kakaoId));
-                await window.fsSetDoc(docRef, { name, phone, status: 'pending', kakaoId: String(currentUser.kakaoId) });
-            } catch(e) { console.warn('Firestore 저장 실패:', e); }
-            document.getElementById('register-step1').style.display = 'none';
-            document.getElementById('register-step2').style.display = 'block';
-        } else {
-            alert('등록 실패. 학원으로 문의해주세요.');
-        }
-    } catch(e) { showLoader(false); alert('서버 오류. 다시 시도해주세요.'); }
+        if (otpResult.status !== 'success') { showToast('인증번호가 올바르지 않습니다.', 'error'); return; }
+
+        // OTP 인증 성공 → 임시 저장 후 step2(학원코드 입력)로 이동
+        _pendingReg = { name, phone };
+        document.getElementById('register-step1').style.display = 'none';
+        document.getElementById('register-step2').style.display = 'block';
+    } catch(e) { showLoader(false); showToast('서버 오류. 다시 시도해주세요.', 'error'); }
 }
+
+async function submitAcademyCode() {
+    if (!_pendingReg) { showToast('처음부터 다시 시도해주세요.', 'error'); return; }
+    if (!currentUser?.kakaoId) { showToast('카카오 로그인이 필요합니다. 새로고침 후 다시 시도해주세요.', 'error'); return; }
+    const rawCode = document.getElementById('reg-academy-code').value.trim();
+    if (!rawCode) { showToast('학원 코드를 입력해주세요.', 'info'); return; }
+    const code = rawCode.toUpperCase();
+
+    const errEl = document.getElementById('reg-code-error');
+    errEl.style.display = 'none';
+
+    showLoader(true);
+    try {
+        // Firestore academies 컬렉션에서 inviteCode 일치 학원 검색
+        const q = window.fsQuery(
+            window.fsCollection(window.db, 'academies'),
+            window.fsWhere('inviteCode', '==', code)
+        );
+        const snap = await window.fsGetDocs(q);
+        if (snap.empty) {
+            showLoader(false);
+            errEl.textContent = '학원 코드가 올바르지 않습니다. 원장님께 다시 확인해주세요.';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        const academyDoc = snap.docs[0];
+        const academyId = academyDoc.id;
+        const { name: studentName, phone } = _pendingReg;
+
+        // GAS에 registerStudent 요청
+        try {
+            await fetchWithRetry(CONFIG.GAS_URL, {
+                body: JSON.stringify({ action:'registerStudent', kakaoId:currentUser.kakaoId, name:studentName, phone, status:'pending' })
+            });
+        } catch(e) { /* GAS 실패해도 Firestore 등록은 진행 */ }
+
+        // Firestore에 pending 상태로 저장 (academyId 포함)
+        const docRef = window.fsDoc(window.db, 'students', String(currentUser.kakaoId));
+        await window.fsSetDoc(docRef, {
+            name: studentName,
+            phone,
+            status: 'pending',
+            kakaoId: String(currentUser.kakaoId),
+            academyId
+        });
+
+        showLoader(false);
+        _pendingReg = null;
+        document.getElementById('register-step2').style.display = 'none';
+        document.getElementById('register-step3').style.display = 'block';
+        document.getElementById('reg-pending-msg').textContent = `[${academyDoc.data().name || academyId}] 원장님 승인 후 이용 가능합니다.`;
+        document.getElementById('register-close-btn').style.display = 'block';
+    } catch(e) {
+        showLoader(false);
+        showToast('서버 오류. 다시 시도해주세요.', 'error');
+    }
+}
+
+function goBackToStep1() {
+    document.getElementById('register-step2').style.display = 'none';
+    document.getElementById('register-step1').style.display = 'block';
+}
+
+            // ==================== PIN 비밀번호 인증 ====================
+    let _pinResolve = null;
+    let _pinKakaoId = null;
+    let _pinMode = 'verify';
+
+    async function _hashPin(pin) {
+        const data = new TextEncoder().encode(pin + '_saha_salt');
+        const buf = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function verifyOrSetPin(kakaoId) {
+        _pinKakaoId = kakaoId;
+        if (!window.db) return true;
+        try {
+            const snap = await window.fsGetDoc(window.fsDoc(window.db, 'students', String(kakaoId)));
+            const hasPIN = snap.exists() && snap.data().pinHash;
+            return await _showPinModal(hasPIN ? 'verify' : 'set');
+        } catch(e) {
+            return await _showPinModal('verify');
+        }
+    }
+
+    function _showPinModal(mode) {
+        _pinMode = mode;
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-confirm-input').value = '';
+        document.getElementById('pin-error-msg').textContent = '';
+        if (mode === 'set') {
+            document.getElementById('pin-modal-title').textContent = '🔐 비밀번호 설정';
+            document.getElementById('pin-modal-desc').textContent  = '처음 사용 시 비밀번호를 설정해주세요 (숫자 4~6자리)';
+            document.getElementById('pin-confirm-input').style.display = 'block';
+            document.getElementById('pin-biometric-btn').style.display = 'none';
+        } else {
+            document.getElementById('pin-modal-title').textContent = '🔐 비밀번호 입력';
+            document.getElementById('pin-modal-desc').textContent  = '등록된 비밀번호를 입력해주세요';
+            document.getElementById('pin-confirm-input').style.display = 'none';
+            document.getElementById('pin-biometric-btn').style.display = window.PublicKeyCredential ? 'block' : 'none';
+        }
+        document.getElementById('pin-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('pin-input').focus(), 200);
+        return new Promise(resolve => { _pinResolve = resolve; });
+    }
+
+    async function confirmPin() {
+        const pin = document.getElementById('pin-input').value;
+        const errEl = document.getElementById('pin-error-msg');
+        if (!pin || pin.length < 4) { errEl.textContent = '4자리 이상 입력해주세요.'; return; }
+        if (_pinMode === 'set') {
+            const confirm2 = document.getElementById('pin-confirm-input').value;
+            if (pin !== confirm2) { errEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
+            showLoader(true);
+            try {
+                const hash = await _hashPin(pin);
+                await window.fsUpdateDoc(window.fsDoc(window.db, 'students', String(_pinKakaoId)), { pinHash: hash });
+                showLoader(false);
+                document.getElementById('pin-modal').style.display = 'none';
+                if (_pinResolve) { _pinResolve(true); _pinResolve = null; }
+            } catch(e) { showLoader(false); errEl.textContent = '저장 실패. 다시 시도해주세요.'; }
+        } else {
+            showLoader(true);
+            try {
+                const hash = await _hashPin(pin);
+                const snap = await window.fsGetDoc(window.fsDoc(window.db, 'students', String(_pinKakaoId)));
+                showLoader(false);
+                if (snap.exists() && snap.data().pinHash === hash) {
+                    document.getElementById('pin-modal').style.display = 'none';
+                    if (_pinResolve) { _pinResolve(true); _pinResolve = null; }
+                } else {
+                    errEl.textContent = '비밀번호가 틀렸습니다.';
+                    document.getElementById('pin-input').value = '';
+                }
+            } catch(e) { showLoader(false); errEl.textContent = '오류 발생. 다시 시도해주세요.'; }
+        }
+    }
+
+    async function retryBiometric() {
+        document.getElementById('pin-modal').style.display = 'none';
+        const ok = await verifyWebAuthn(_pinKakaoId);
+        if (ok) {
+            if (_pinResolve) { _pinResolve(true); _pinResolve = null; }
+        } else {
+            setTimeout(() => { document.getElementById('pin-modal').style.display = 'flex'; }, 200);
+        }
+    }
     // ==================== WebAuthn ====================
     async function registerWebAuthn(kakaoId, name) {
         if (!window.PublicKeyCredential) return false;
@@ -2054,7 +2374,7 @@ async function submitNewStudent() {
                     ],
                                         authenticatorSelection: {
                         authenticatorAttachment: 'platform',
-                        userVerification: 'preferred'
+                        userVerification: 'required'
                     },
                     timeout: 60000
                 }
@@ -2084,7 +2404,7 @@ async function submitNewStudent() {
                 challenge,
                 rpId: location.hostname,
                 allowCredentials: [],
-                                userVerification: 'preferred',
+                                userVerification: 'required',
                 timeout: 60000
             }
         });
@@ -2100,16 +2420,34 @@ async function submitNewStudent() {
     }
 }
 
-    async function ensureWebAuthn(kakaoId, name) {
-    if (!window.PublicKeyCredential) return true;
+        async function ensureWebAuthn(kakaoId, name) {
+    // WebAuthn 자체 미지원 기기 → 앱 PIN
+    if (!window.PublicKeyCredential) {
+        return await verifyOrSetPin(kakaoId);
+    }
+
+    // 생체인식(또는 화면잠금) 등록 여부 사전 확인
+    let hasPlatformAuth = false;
+    try {
+        hasPlatformAuth = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    } catch(e) {
+        hasPlatformAuth = false;
+    }
+
+    // 생체인식 없는 기기 → 앱 PIN으로 바로 이동 (WebAuthn 시도 안 함)
+    if (!hasPlatformAuth) {
+        return await verifyOrSetPin(kakaoId);
+    }
+
+    // 생체인식 있는 기기 → WebAuthn
     const credId = localStorage.getItem('webAuthnCredId');
     if (!credId) {
-        return await registerWebAuthn(kakaoId, name);
+        const registered = await registerWebAuthn(kakaoId, name);
+        if (!registered) return await verifyOrSetPin(kakaoId);
+        return registered;
     }
     const ok = await verifyWebAuthn(kakaoId);
-    if (!ok) {
-        return await registerWebAuthn(kakaoId, name);
-    }
+    if (!ok) return await verifyOrSetPin(kakaoId);
     return true;
 }
 
@@ -2197,7 +2535,7 @@ async function submitNewStudent() {
                 if (inv) inv.noRecords = true;
             }
             goBackToMain(true);
-            setTimeout(() => alert('이 기간에 근무 기록이 없어 서명이 필요하지 않습니다.'), 200);
+            setTimeout(() => showToast('이 기간에 근무 기록이 없어 서명이 필요하지 않습니다.'), 200, 'info');
             return;
         }
         document.getElementById('mode-switch-btn').style.display = 'block';
@@ -2235,7 +2573,7 @@ async function submitNewStudent() {
         function saveSignatureFromModal(mode) {
         if (!currentSigTarget) return;
         const srcCanvas = document.getElementById('modal-canvas');
-        if (isBlankCanvas(srcCanvas)) { alert('서명을 입력해주세요.'); return; }
+        if (isBlankCanvas(srcCanvas)) { showToast('서명을 입력해주세요.', 'info'); return; }
         const isStudent = currentSigTarget.classList.contains('student-canvas');
         const targets = mode==='all'
             ? document.querySelectorAll(isStudent?'.student-canvas':'.manager-canvas')
@@ -2265,7 +2603,7 @@ async function submitNewStudent() {
             const row = c.closest('.compact-record');
             if (row && row.dataset.absent !== 'true' && isBlankCanvas(c)) allSigned = false;
         });
-        if (!allSigned) { alert('모든 날짜에 학생 서명을 완료해주세요.'); return; }
+        if (!allSigned) { showToast('모든 날짜에 학생 서명을 완료해주세요.', 'error'); return; }
         openSigOTPModal(function(phone) {
             sigManagerMode = 'A';
             sigOtpPhone = phone;
@@ -2279,23 +2617,23 @@ async function submitNewStudent() {
         });
     }
         function submitFinalSignature() {
-        if (sigManagerMode === 'none') { alert('담당자 인증을 먼저 완료해주세요.'); return; }
+        if (sigManagerMode === 'none') { showToast('담당자 인증을 먼저 완료해주세요.', 'error'); return; }
         const rows = document.querySelectorAll('.compact-record:not([data-absent="true"])');
         for (const row of rows) {
             const idx = parseInt(row.dataset.recordIdx);
             const rec = currentRecordData[idx];
             if (rec && (!rec.checkIn || rec.checkIn==='-' || !rec.checkOut || rec.checkOut==='-')) {
-                alert(`${rec.month}월 ${rec.day}일에 출근 또는 퇴근 기록이 누락되어 제출할 수 없습니다.`);
+                showToast(`${rec.month}월 ${rec.day}일에 출근 또는 퇴근 기록이 누락되어 제출할 수 없습니다.`, 'error');
                 return;
             }
             const sc = row.querySelector('.student-canvas');
             const mc = row.querySelector('.manager-canvas');
             if (sc && isBlankCanvas(sc)) {
-                alert(`${rec ? rec.month+'월 '+rec.day+'일' : '일부 날짜'}에 학생 서명이 없습니다.`);
+                showToast(`${rec ? rec.month+'월 '+rec.day+'일' : '일부 날짜'}에 학생 서명이 없습니다.`, 'error');
                 return;
             }
             if (mc && isBlankCanvas(mc)) {
-                alert(`${rec ? rec.month+'월 '+rec.day+'일' : '일부 날짜'}에 담당자 서명이 없습니다.`);
+                showToast(`${rec ? rec.month+'월 '+rec.day+'일' : '일부 날짜'}에 담당자 서명이 없습니다.`, 'error');
                 return;
             }
         }
@@ -2332,9 +2670,9 @@ async function submitNewStudent() {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'submitToGoogleDoc', kakaoId:currentUser.kakaoId, name:currentUser.name, intervalStr:currentInterval.intervalStr, startDate:currentInterval.startDate, endDate:currentInterval.endDate, records }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status==='success') { alert('🎉 실습근무카드 제출 완료!'); closeFinalConfirmModal(); goBackToMain(); location.reload(); }
-            else { alert('❌ 제출 실패: '+(result.message||'')); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status==='success') { showToast('🎉 실습근무카드 제출 완료!', 'success'); closeFinalConfirmModal(); goBackToMain(); location.reload(); }
+            else { showToast('❌ 제출 실패: '+(result.message||''), 'error'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
         finally { btn.disabled=false; btn.textContent='최종 제출하기'; }
     }
 
@@ -2373,7 +2711,7 @@ async function submitNewStudent() {
     }
         function completeMissingStudentSig() {
         const canvas = document.getElementById('missing-student-canvas');
-        if (isBlankCanvas(canvas)) { alert('서명을 입력해주세요.'); return; }
+        if (isBlankCanvas(canvas)) { showToast('서명을 입력해주세요.', 'info'); return; }
         missingStudentSigned = true;
         const dataUrl = canvas.toDataURL('image/png');
         document.getElementById('missing-student-sig-area').innerHTML=`<div style="position:relative;width:100%;"><img src="${dataUrl}" style="width:100%;border-radius:8px;display:block;"><button onclick="clearMissingStudentSig()" style="position:absolute;top:2px;right:2px;background:#ef4444;color:white;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:bold;cursor:pointer;line-height:1;">✕</button></div>`;
@@ -2406,7 +2744,7 @@ async function submitNewStudent() {
     }
     function completeMissingManagerSig() {
         const canvas = document.getElementById('missing-manager-canvas');
-        if (isBlankCanvas(canvas)) { alert('서명을 입력해주세요.'); return; }
+        if (isBlankCanvas(canvas)) { showToast('서명을 입력해주세요.', 'info'); return; }
         missingManagerSigned = true;
         const dataUrl = canvas.toDataURL('image/png');
         document.getElementById('missing-manager-sig-area').innerHTML=`<div style="position:relative;width:100%;"><img src="${dataUrl}" style="width:100%;border-radius:8px;display:block;"><button onclick="clearMissingManagerSig()" style="position:absolute;top:2px;right:2px;background:#ef4444;color:white;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:bold;cursor:pointer;line-height:1;">✕</button></div>`;
@@ -2455,42 +2793,35 @@ async function submitNewStudent() {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'submitMissingVacation', kakaoId:currentUser.kakaoId, name:currentUser.name, missingRecord:window.currentMissingRecord }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status==='success') { alert('제출 완료!'); location.reload(); }
-            else { alert('제출 실패: '+(result.message||'')); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status==='success') { showToast('제출 완료!', 'success'); location.reload(); }
+            else { showToast('제출 실패: '+(result.message||''), 'error'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
     async function requestManagerOTP() {
         const phone = document.getElementById('manager-phone-input').value.trim();
-        if (!phone) { alert('담당자 휴대폰 번호를 입력해주세요.'); return; }
+        if (!phone) { showToast('담당자 휴대폰 번호를 입력해주세요.', 'info'); return; }
         missingManagerPhone = phone;
         showLoader(true);
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'requestOTP', phone:phone, kakaoId:currentUser.kakaoId, name:currentUser.name }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status==='success') { document.getElementById('otp-request-section').style.display='none'; document.getElementById('otp-verify-section').style.display='block'; alert('인증번호가 발송되었습니다.'); }
-            else { alert('발송 실패: '+result.message); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status==='success') { document.getElementById('otp-request-section').style.display='none'; document.getElementById('otp-verify-section').style.display='block'; showToast('인증번호가 발송되었습니다.', 'success'); }
+            else { showToast('발송 실패: '+result.message, 'error'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
             async function verifyManagerOTP() {
         const otp = document.getElementById('manager-otp-input').value.trim();
-        if (!otp) { alert('인증번호를 입력해주세요.'); return; }
-        if (!document.getElementById('otp-consent-check').checked) { alert('개인정보 수집 동의를 체크해주세요.'); return; }
-        if (otp === '0000') {
-            alert('인증 완료. 서명을 진행해주세요.');
-            document.getElementById('otp-request-section').style.display='none';
-            document.getElementById('otp-verify-section').style.display='none';
-            document.getElementById('manager-signature-section').style.display='block';
-            return;
-        }
+        if (!otp) { showToast('인증번호를 입력해주세요.', 'info'); return; }
+        if (!document.getElementById('otp-consent-check').checked) { showToast('개인정보 수집 동의를 체크해주세요.', 'info'); return; }
         showLoader(true);
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({action:'verifyOTP', otp, phone:missingManagerPhone }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status==='success') { alert('인증 완료. 서명을 진행해주세요.'); document.getElementById('otp-request-section').style.display='none'; document.getElementById('otp-verify-section').style.display='none'; document.getElementById('manager-signature-section').style.display='block'; checkMissingTimeSelected(); }
-            else { alert('인증번호가 일치하지 않습니다.'); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status==='success') { showToast('인증 완료. 서명을 진행해주세요.', 'success'); document.getElementById('otp-request-section').style.display='none'; document.getElementById('otp-verify-section').style.display='none'; document.getElementById('manager-signature-section').style.display='block'; checkMissingTimeSelected(); }
+            else { showToast('인증번호가 일치하지 않습니다.', 'info'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
         async function submitMissingSignature() {
         const missing = window.currentMissingRecord;
@@ -2508,8 +2839,8 @@ async function submitNewStudent() {
         const studentSig = getSigData('missing-student-sig-area', 'missing-student-canvas');
         const managerSig = getSigData('missing-manager-sig-area', 'missing-manager-canvas');
 
-        if (!studentSig) { alert('학생 서명이 없습니다.'); return; }
-        if (!managerSig) { alert('담당자 서명이 없습니다.'); return; }
+        if (!studentSig) { showToast('학생 서명이 없습니다.', 'error'); return; }
+        if (!managerSig) { showToast('담당자 서명이 없습니다.', 'error'); return; }
 
         let inTime='', outTime='';
         if (missing.type==='출근'||missing.type==='출,퇴근') inTime=(document.getElementById('in-hour')||{}).value+':'+(document.getElementById('in-min')||{}).value;
@@ -2522,9 +2853,9 @@ async function submitNewStudent() {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'submitPendingMissingAttendance', kakaoId:currentUser.kakaoId, name:currentUser.name, missingRecord:missing, studentSignature:studentSig, managerSignature:managerSig, inTime, outTime, managerPhone:missingManagerPhone }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status==='success') { alert('제출 완료!'); resetMissingSig(); document.getElementById('missing-alert-modal').style.display='none'; location.reload(); }
-            else { alert('제출 실패: '+(result.message||'')); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status==='success') { showToast('제출 완료!', 'success'); resetMissingSig(); document.getElementById('missing-alert-modal').style.display='none'; location.reload(); }
+            else { showToast('제출 실패: '+(result.message||''), 'error'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
         finally { btn.disabled=false; btn.textContent='제출하기'; }
     }
 
@@ -2544,7 +2875,7 @@ async function submitNewStudent() {
     }
     async function requestSigOTP() {
         const phone = document.getElementById('sig-otp-phone').value.trim();
-        if (!phone) { alert('휴대폰 번호를 입력해주세요.'); return; }
+        if (!phone) { showToast('휴대폰 번호를 입력해주세요.', 'info'); return; }
         sigOtpPhone = phone;
         showLoader(true);
         try {
@@ -2554,19 +2885,14 @@ async function submitNewStudent() {
             if (result.status === 'success') {
                 document.getElementById('sig-otp-phone-area').style.display = 'none';
                 document.getElementById('sig-otp-code-area').style.display  = 'block';
-                alert('인증번호가 발송되었습니다.');
-            } else { alert('발송 실패: ' + result.message); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+                showToast('인증번호가 발송되었습니다.', 'success');
+            } else { showToast('발송 실패: ' + result.message, 'error'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
     async function verifySigOTP() {
         const otp = document.getElementById('sig-otp-code').value.trim();
-        if (!otp) { alert('인증번호를 입력해주세요.'); return; }
-if (!document.getElementById('otp-consent-check').checked) { alert('개인정보 수집 동의를 체크해주세요.'); return; }
-        if (otp === '0000') {
-            document.getElementById('sig-otp-modal').style.display = 'none';
-            if (sigOtpCallback) { sigOtpCallback(sigOtpPhone || 'test'); sigOtpCallback = null; }
-            return;
-        }
+        if (!otp) { showToast('인증번호를 입력해주세요.', 'info'); return; }
+if (!document.getElementById('otp-consent-check').checked) { showToast('개인정보 수집 동의를 체크해주세요.', 'info'); return; }
         showLoader(true);
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'verifyOTP', otp, phone:sigOtpPhone }) });
@@ -2575,8 +2901,8 @@ if (!document.getElementById('otp-consent-check').checked) { alert('개인정보
             if (result.status === 'success') {
                 document.getElementById('sig-otp-modal').style.display = 'none';
                 if (sigOtpCallback) { sigOtpCallback(sigOtpPhone); sigOtpCallback = null; }
-            } else { alert('인증번호가 일치하지 않습니다.'); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            } else { showToast('인증번호가 일치하지 않습니다.', 'info'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
     function changeManager() {
         openSigOTPModal(function(phone) {
@@ -2616,39 +2942,359 @@ if (!document.getElementById('otp-consent-check').checked) { alert('개인정보
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'approveMissingAttendance', recordId, type, inTime, outTime, row }) });
             const result = await response.json();
             showLoader(false);
-            if (result.status==='success') { alert('✅ 승인 완료!'); fetchPendingApprovals(); }
-            else { alert('승인 실패: '+result.message); }
-        } catch(e) { showLoader(false); alert('서버 오류.'); }
+            if (result.status==='success') { showToast('✅ 승인 완료!', 'success'); fetchPendingApprovals(); }
+            else { showToast('승인 실패: '+result.message, 'error'); }
+        } catch(e) { showLoader(false); showToast('서버 오류.', 'error'); }
     }
     async function sendAdminRequest() {
         const studentId = document.getElementById('req-student-select').value;
         const docType   = document.getElementById('req-doc-select').value;
-        if (!studentId) { alert('학생을 선택해주세요.'); return; }
+        if (!studentId) { showToast('학생을 선택해주세요.', 'info'); return; }
         const btn = document.getElementById('req-submit-btn'); btn.disabled=true;
         try {
             const response = await fetchWithRetry(CONFIG.GAS_URL, { body: JSON.stringify({ action:'sendDocumentRequest', targetKakaoId:studentId, docType }) });
             const result = await response.json();
-            if (result.status==='success') { alert('요청 완료!'); closeDocRequestModal(); }
-            else { alert('요청 실패: '+result.message); }
-        } catch(e) { alert('서버 오류.'); }
+            if (result.status==='success') { showToast('요청 완료!', 'success'); closeDocRequestModal(); }
+            else { showToast('요청 실패: '+result.message, 'error'); }
+        } catch(e) { showToast('서버 오류.', 'error'); }
         finally { btn.disabled=false; }
     }
     function closeDocRequestModal() { document.getElementById('doc-request-modal').style.display='none'; }
     async function submitHospitalEdit() {
         const studentId  = document.getElementById('edit-student-select').value;
         const hospitalEl = document.getElementById('edit-hospital-select');
-        if (!studentId || !hospitalEl.value) { alert('학생과 병원을 선택해주세요.'); return; }
+        if (!studentId || !hospitalEl.value) { showToast('학생과 병원을 선택해주세요.', 'info'); return; }
         const opt = hospitalEl.options[hospitalEl.selectedIndex];
         const btn = document.getElementById('hospital-submit-btn'); btn.disabled=true;
         try {
                         const docRef = window.fsDoc(window.db, 'students', String(studentId));
             await window.fsUpdateDoc(docRef, { hospital: opt.text, hospitalLat: parseFloat(opt.dataset.lat), hospitalLon: parseFloat(opt.dataset.lon) });
-            alert('정정 완료!'); closeHospitalEditModal();
-        } catch(e) { alert('서버 오류.'); }
+            showToast('정정 완료!', 'success'); closeHospitalEditModal();
+        } catch(e) { showToast('서버 오류.', 'error'); }
         finally { btn.disabled=false; }
     }
-    function closeHospitalEditModal() { document.getElementById('hospital-edit-modal').style.display='none'; }
-    
+        function closeHospitalEditModal() { document.getElementById('hospital-edit-modal').style.display='none'; }
+
+    // ==================== 관리자 기능 ====================
+    const HOSPITALS = [
+        { name: '사송(test)',      lat: 35.319494, lon: 129.070902 },
+        { name: '사하제일간호학원', lat: 35.104694, lon: 128.971022 },
+        { name: '더존한방',        lat: 35.105956, lon: 128.966085 },
+        { name: '부영',            lat: 35.141094, lon: 128.984060 },
+        { name: '장림한서',        lat: 35.074158, lon: 128.976929 },
+        { name: '굳건',            lat: 35.105134, lon: 128.969996 },
+        { name: '한빛요양',        lat: 35.087057, lon: 128.993433 },
+        { name: '명지오션척',      lat: 35.081195, lon: 128.903346 },
+        { name: '부산맘',          lat: 35.105063, lon: 128.969028 },
+        { name: '좋은사랑',        lat: 35.099561, lon: 128.983513 },
+        { name: '소나무',          lat: 35.105399, lon: 129.009726 },
+        { name: '신창요양',        lat: 35.102581, lon: 129.036129 },
+        { name: '자생한방',        lat: 35.106636, lon: 128.967709 },
+        { name: '곽요양',          lat: 35.106506, lon: 128.960991 },
+        { name: '더탄탄',          lat: 35.098480, lon: 128.993575 },
+        { name: '갑을녹산',        lat: 35.090565, lon: 128.853299 },
+        { name: '강동병원',        lat: 35.089700, lon: 128.977952 },
+        { name: '조이효요양',      lat: 35.090557, lon: 128.998752 },
+    ];
+
+
+    async function showAdminSection() {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('main-section').style.display  = 'none';
+        showLoader(false);
+
+        // 이전 선택이 있으면 바로 이동
+        const saved = localStorage.getItem('adminVersion');
+        if (saved === 'pc')     { window.location.href = 'admin.html';        return; }
+        if (saved === 'mobile') { window.location.href = 'admin-mobile.html'; return; }
+
+        // 버전 선택 오버레이 표시
+        const overlay = document.getElementById('admin-version-overlay');
+        if (overlay) overlay.style.display = 'flex';
+    }
+
+    function selectAdminVersion(v) {
+        localStorage.setItem('adminVersion', v);
+        window.location.href = v === 'pc' ? 'admin.html' : 'admin-mobile.html';
+    }
+
+    async function adminLoadData() {
+        showLoader(true);
+        try {
+            // 학생 목록
+            const stuSnap = await window.fsGetDocs(window.fsCollection(window.db, 'students'));
+            adminStudentsList = [];
+            stuSnap.forEach(doc => {
+                const d = doc.data();
+                if (d.status !== 'pending' && d.role !== 'admin') {
+                    adminStudentsList.push({ kakaoId: doc.id, name: d.name || doc.id, classId: d.classId || '', hospital: d.hospital || '' });
+                }
+            });
+            adminStudentsList.sort((a, b) => (a.name||'').localeCompare(b.name||'', 'ko'));
+
+            // 반 목록
+            const clSnap = await window.fsGetDocs(window.fsCollection(window.db, 'classes'));
+            adminClassesList = [];
+            clSnap.forEach(doc => {
+                const d = doc.data();
+                adminClassesList.push({ id: doc.id, name: d.name || doc.id, students: d.students || [], academyId: d.academyId || '' });
+            });
+            adminClassesList.sort((a, b) => (a.name||'').localeCompare(b.name||'', 'ko'));
+
+            adminRenderClassFilter();
+            adminFilterStudents();
+            adminRenderClassList();
+            adminPopulateAssignSelects();
+        } catch(e) {
+            showToast('데이터 로드 실패: ' + e.message, 'error');
+        }
+        showLoader(false);
+    }
+
+    function adminRenderClassFilter() {
+        const sel = document.getElementById('admin-class-filter');
+        sel.innerHTML = '<option value="">전체 학생</option>';
+        adminClassesList.forEach(c => {
+            const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sel.appendChild(o);
+        });
+    }
+
+    function adminFilterStudents() {
+        const classId = document.getElementById('admin-class-filter').value;
+        const sel = document.getElementById('admin-student-select');
+        sel.innerHTML = '<option value="">학생을 선택해주세요</option>';
+        const list = classId ? adminStudentsList.filter(s => s.classId === classId) : adminStudentsList;
+        list.forEach(s => {
+            const o = document.createElement('option');
+            o.value = s.kakaoId;
+            o.textContent = s.name + (s.hospital ? ` (${s.hospital})` : '');
+            sel.appendChild(o);
+        });
+    }
+
+    function adminRenderClassList() {
+        const el = document.getElementById('admin-class-list');
+        if (!adminClassesList.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px;">등록된 반이 없습니다.</div>'; return; }
+        el.innerHTML = adminClassesList.map(c => {
+            const members = adminStudentsList.filter(s => s.classId === c.id);
+            return `<div style="border:1px solid #1e293b;border-radius:8px;padding:12px;margin-bottom:10px;">
+                <div style="font-weight:700;font-size:14px;color:#60a5fa;margin-bottom:6px;">${c.name} (${members.length}명)</div>
+                <div style="font-size:12px;color:#94a3b8;">${members.length ? members.map(s=>s.name).join(', ') : '(배정된 학생 없음)'}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function adminPopulateAssignSelects() {
+        const stuSel = document.getElementById('assign-student-select');
+        stuSel.innerHTML = '<option value="">학생을 선택해주세요</option>';
+        adminStudentsList.forEach(s => {
+            const o = document.createElement('option'); o.value = s.kakaoId;
+            const cn = s.classId ? (adminClassesList.find(c => c.id === s.classId)||{}).name : null;
+            o.textContent = s.name + (cn ? ` [${cn}]` : '');
+            stuSel.appendChild(o);
+        });
+        const clSel = document.getElementById('assign-class-select');
+        clSel.innerHTML = '<option value="">반을 선택해주세요</option>';
+        adminClassesList.forEach(c => {
+            const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; clSel.appendChild(o);
+        });
+    }
+
+    async function adminChangeHospital() {
+        const studentId = document.getElementById('admin-student-select').value;
+        const hospitalSel = document.getElementById('admin-hospital-select');
+        const opt = hospitalSel.options[hospitalSel.selectedIndex];
+        if (!studentId || !hospitalSel.value) { showToast('학생과 병원을 선택해주세요.', 'info'); return; }
+        const stuName = document.getElementById('admin-student-select').options[document.getElementById('admin-student-select').selectedIndex].text.split(' (')[0];
+        if (!confirm(`${stuName} → ${opt.text} 으로 변경하시겠습니까?`)) return;
+        showLoader(true);
+        try {
+            await window.fsUpdateDoc(window.fsDoc(window.db, 'students', String(studentId)), {
+                hospital: opt.text, hospitalLat: parseFloat(opt.dataset.lat), hospitalLon: parseFloat(opt.dataset.lon)
+            });
+            showToast('✅ 병원 변경 완료!', 'success');
+            await adminLoadData();
+        } catch(e) { showToast('변경 실패: ' + e.message, 'error'); }
+        showLoader(false);
+    }
+
+    async function adminCreateClass() {
+        const name = document.getElementById('new-class-name').value.trim();
+        if (!name) { showToast('반 이름을 입력해주세요.', 'info'); return; }
+        if (adminClassesList.find(c => c.name === name)) { showToast('이미 존재하는 반 이름입니다.', 'info'); return; }
+        showLoader(true);
+        try {
+            const classId = 'class_' + Date.now();
+            await window.fsSetDoc(window.fsDoc(window.db, 'classes', classId), {
+                name, academyId: CONFIG.ACADEMY_ID, students: [], createdAt: Date.now()
+            });
+            document.getElementById('new-class-name').value = '';
+            showToast('✅ 반 추가 완료!', 'success');
+            await adminLoadData();
+        } catch(e) { showToast('추가 실패: ' + e.message, 'error'); }
+        showLoader(false);
+    }
+
+    async function adminAssignStudentToClass() {
+        const studentId = document.getElementById('assign-student-select').value;
+        const classId   = document.getElementById('assign-class-select').value;
+        if (!studentId || !classId) { showToast('학생과 반을 선택해주세요.', 'info'); return; }
+        const st = adminStudentsList.find(s => s.kakaoId === studentId);
+        const cl = adminClassesList.find(c => c.id === classId);
+        if (!confirm(`${st?.name} → ${cl?.name} 배정하시겠습니까?`)) return;
+        showLoader(true);
+        try {
+            // 기존 반에서 제거 (arrayRemove 없이 수동 처리)
+            if (st?.classId && st.classId !== classId) {
+                const oldSnap = await window.fsGetDoc(window.fsDoc(window.db, 'classes', st.classId));
+                if (oldSnap.exists()) {
+                    const oldStudents = (oldSnap.data().students || []).filter(id => id !== String(studentId));
+                    await window.fsUpdateDoc(window.fsDoc(window.db, 'classes', st.classId), { students: oldStudents });
+                }
+            }
+            // 새 반에 추가
+            await window.fsUpdateDoc(window.fsDoc(window.db, 'classes', classId), {
+                students: window.fsArrayUnion(String(studentId))
+            });
+            // 학생 문서 업데이트
+            await window.fsUpdateDoc(window.fsDoc(window.db, 'students', String(studentId)), { classId });
+            showToast('✅ 배정 완료!', 'success');
+            await adminLoadData();
+        } catch(e) { showToast('배정 실패: ' + e.message, 'error'); }
+        showLoader(false);
+    }
+
+    function switchAdminTab(tab) {
+        ['student','class','hospital'].forEach(t => {
+            document.getElementById('admin-tab-' + t).style.display = t === tab ? 'block' : 'none';
+            const btn = document.getElementById('tab-btn-' + t);
+            btn.style.background = t === tab ? '#2563eb' : 'transparent';
+            btn.style.color      = t === tab ? '#fff'    : '#94a3b8';
+        });
+    }
+
+    function adminLogout() {
+        localStorage.removeItem('realKakaoId');
+        localStorage.removeItem('cachedUserData');
+        sessionStorage.removeItem('currentUser');
+        document.getElementById('admin-section').style.display  = 'none';
+        document.getElementById('login-section').style.display  = 'flex';
+        currentUser = { kakaoId:null, name:null, hospital:null, hospitalLat:null, hospitalLon:null };
+    }
+
+    // ==================== Service Worker 등록 ====================
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    // ==================== 인앱브라우저 감지 + PWA 설치 가이드 ====================
+    (function() {
+        const ua = navigator.userAgent;
+        const isKakao    = /KAKAOTALK/i.test(ua);
+        const isNaver    = /NAVER/i.test(ua);
+        const isInApp    = isKakao || isNaver;
+        const isAndroid  = /Android/i.test(ua);
+        const isIOS      = /iPhone|iPad|iPod/i.test(ua);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                          || window.navigator.standalone;
+
+        // 이미 설치된 앱이면 아무것도 안 함
+        if (isStandalone) return;
+
+        // 인앱브라우저면 외부 브라우저로 유도
+        if (isInApp) {
+            const overlay = document.createElement('div');
+            overlay.id = 'inapp-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#1E3932;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;';
+            const currentUrl = location.href;
+            overlay.innerHTML = `
+                <div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:340px;width:100%;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:16px;">🐦‍⬛</div>
+                    <div style="font-size:18px;font-weight:700;color:#1E3932;margin-bottom:8px;">외부 브라우저로 열어주세요</div>
+                    <div style="font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6;">
+                        ${isAndroid
+                            ? '우측 상단 <b>⋮</b> → <b>다른 브라우저로 열기</b>를 눌러주세요.'
+                            : '우측 하단 <b>···</b> → <b>Safari로 열기</b>를 눌러주세요.'}
+                    </div>
+                    ${isAndroid ? `<a href="intent:${currentUrl}#Intent;scheme=https;action=android.intent.action.VIEW;end"
+                        style="display:block;background:#1E3932;color:#fff;padding:14px;border-radius:50px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:12px;">
+                        브라우저로 열기</a>` : ''}
+                    <div style="font-size:11px;color:#94a3b8;">카카오톡 인앱브라우저에서는<br>홈화면 추가가 되지 않아요</div>
+                </div>`;
+            document.body.appendChild(overlay);
+            return;
+        }
+
+        // iOS Safari: 홈화면 추가 가이드
+        if (isIOS) {
+            const guide = document.createElement('div');
+            guide.id = 'ios-install-guide';
+            guide.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:28px 24px 36px;z-index:9999;box-shadow:0 -4px 24px rgba(0,0,0,0.18);transform:translateY(100%);transition:transform 0.35s ease;';
+            guide.innerHTML = `
+                <div style="width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 20px;"></div>
+                <div style="text-align:center;margin-bottom:20px;">
+                    <div style="font-size:36px;margin-bottom:8px;">🐦‍⬛</div>
+                    <div style="font-size:17px;font-weight:700;color:#1E3932;margin-bottom:4px;">홈화면에 추가하기</div>
+                    <div style="font-size:13px;color:#64748b;">앱처럼 바로 사용할 수 있어요</div>
+                </div>
+                <div style="background:#f8fafc;border-radius:14px;padding:16px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                        <div style="width:32px;height:32px;background:#1E3932;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;">1</div>
+                        <div style="font-size:14px;color:#334155;">하단 가운데 <b>공유 버튼</b> (□↑) 탭</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:32px;height:32px;background:#1E3932;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;">2</div>
+                        <div style="font-size:14px;color:#334155;"><b>'홈 화면에 추가'</b> 선택</div>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('ios-install-guide').style.transform='translateY(100%)';localStorage.setItem('pwaGuideDismissed','1');"
+                    style="width:100%;margin-top:16px;padding:14px;background:#1E3932;color:#fff;border:none;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;">
+                    나중에
+                </button>`;
+            document.body.appendChild(guide);
+
+            // 3초 후 슬라이드 업
+            if (!localStorage.getItem('pwaGuideDismissed')) {
+                setTimeout(() => { guide.style.transform = 'translateY(0)'; }, 3000);
+            }
+            return;
+        }
+
+        // Android: beforeinstallprompt 이벤트로 설치 배너 제어
+        if (isAndroid) {
+            let deferredPrompt = null;
+            window.addEventListener('beforeinstallprompt', e => {
+                e.preventDefault();
+                deferredPrompt = e;
+                if (!localStorage.getItem('pwaGuideDismissed')) {
+                    showInstallBanner(deferredPrompt);
+                }
+            });
+        }
+    })();
+
+    function showInstallBanner(deferredPrompt) {
+        const banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;background:#1E3932;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+        banner.innerHTML = `
+            <div style="font-size:28px;">🐦‍⬛</div>
+            <div style="flex:1;">
+                <div style="color:#fff;font-size:14px;font-weight:700;">홈화면에 추가</div>
+                <div style="color:rgba(255,255,255,0.7);font-size:12px;">앱처럼 바로 사용하세요</div>
+            </div>
+            <button id="pwa-install-btn" style="background:#00754A;color:#fff;border:none;border-radius:50px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">설치</button>
+            <button onclick="this.parentElement.remove();localStorage.setItem('pwaGuideDismissed','1');"
+                style="background:transparent;border:none;color:rgba(255,255,255,0.5);font-size:18px;cursor:pointer;padding:0 4px;">✕</button>`;
+        document.body.appendChild(banner);
+        document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+            banner.remove();
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                localStorage.setItem('pwaGuideDismissed', '1');
+            }
+        });
+    }
 </script>
 </body>
 </html>
