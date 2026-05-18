@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Here 출결관리 설치</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1E3932">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+            background: #1E3932;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 40px 24px 32px;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo { font-size: 30px; font-weight: 900; color: #1E3932; margin-bottom: 4px; }
+        .sub  { font-size: 14px; color: #94a3b8; margin-bottom: 36px; }
+        .big-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: 900;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            background: #1E3932;
+            color: #fff;
+            transition: background 0.2s;
+        }
+        .big-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .info-box {
+            display: none;
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            border-radius: 14px;
+            padding: 18px 16px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 15px;
+            color: #166534;
+            line-height: 2.1;
+        }
+        .warn-box {
+            display: none;
+            background: #fff7ed;
+            border: 1.5px solid #fed7aa;
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #9a3412;
+            line-height: 1.7;
+        }
+        .note { font-size: 13px; color: #94a3b8; margin-top: 16px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">🐦‍⬛ Here</div>
+    <div class="sub">실습 출결관리</div>
+
+    <button class="big-btn" id="main-btn" onclick="doInstall()">
+        📲 홈화면에 추가하기
+    </button>
+
+    <!-- iOS 설치 후 안내 -->
+    <div class="info-box" id="ios-guide">
+        <b>이제 아래 순서대로 해주세요</b><br>
+        1️⃣ 화면 위 알림 탭<br>
+        2️⃣ 설정 앱 → <b>설치</b> 탭<br>
+        3️⃣ 홈화면에서 아이콘 확인 🎉
+    </div>
+
+    <!-- 인앱브라우저 경고 -->
+    <div class="warn-box" id="inapp-warn">
+        카카오톡 안에서는 설치할 수 없어요.<br>
+        <b>크롬</b> 또는 <b>Safari</b>로 열어주세요.
+    </div>
+
+    <div class="note" id="note"></div>
+</div>
+
+<script>
+    const APP_URL  = 'https://knadlg1.github.io/sahanurse-attendance/';
+    const FUNC_URL = 'https://us-central1-my-attendance-8122d.cloudfunctions.net';
+
+    const ua          = navigator.userAgent;
+    const isIOS       = /iPhone|iPad|iPod/i.test(ua);
+    const isInApp     = /KAKAOTALK|NAVER/i.test(ua);
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    let deferredPrompt = null;
+
+    // 이미 설치됨 → 바로 앱으로
+    if (isInstalled) location.href = APP_URL;
+
+    // 인앱브라우저
+    if (isInApp) {
+        document.getElementById('main-btn').disabled = true;
+        document.getElementById('inapp-warn').style.display = 'block';
+    }
+
+    // Android: 설치 프롬프트 대기
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+    });
+
+    // 서비스워커 등록 (beforeinstallprompt 조건)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    async function doInstall() {
+        const btn = document.getElementById('main-btn');
+
+        if (isIOS) {
+            // iOS: mobileconfig 다운로드
+            location.href = FUNC_URL + '/iosInstall';
+            setTimeout(() => {
+                btn.textContent = '✅ 프로필 다운로드됨';
+                btn.style.background = '#10b981';
+                document.getElementById('ios-guide').style.display = 'block';
+            }, 1000);
+
+        } else if (deferredPrompt) {
+            // Android: PWA 설치 프롬프트
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            if (outcome === 'accepted') {
+                btn.textContent = '🎉 설치 완료!';
+                btn.style.background = '#10b981';
+                document.getElementById('note').textContent = '홈화면에서 Here 아이콘을 찾아보세요!';
+            }
+
+        } else {
+            // 지원 안 되는 경우 → 앱으로 이동
+            document.getElementById('note').textContent = '이미 설치됐거나 지원되지 않는 브라우저예요.';
+            setTimeout(() => { location.href = APP_URL; }, 1500);
+        }
+    }
+</script>
+</body>
+</html>
