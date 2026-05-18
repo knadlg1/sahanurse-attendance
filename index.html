@@ -500,7 +500,7 @@
 
     <div class="bottom-grid">
         <div class="grid-top">
-            <button class="grid-main-btn" onclick="openSickLeaveModal()">
+            <button class="grid-main-btn" disabled style="position:relative;opacity:0.5;filter:grayscale(1);cursor:not-allowed;"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;background:rgba(200,200,200,0.5);border-radius:12px;pointer-events:none;"><span style="font-weight:800;font-size:13px;color:#333;background:rgba(255,255,255,0.85);padding:3px 10px;border-radius:20px;">준비중</span></div>
                 <div class="grid-label" style="margin-bottom:6px;">병가<br>서류제출</div>
                 <div class="grid-img-wrap">
                     <!-- 병가 이미지: img-sick src에 base64 붙여넣기 -->
@@ -508,7 +508,7 @@
                     <span class="grid-icon-fallback" id="icon-sick">🏥</span>
                 </div>
             </button>
-            <button class="grid-main-btn" onclick="openCertModal()" style="position:relative;">
+            <button class="grid-main-btn" disabled style="position:relative;opacity:0.5;filter:grayscale(1);cursor:not-allowed;"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;background:rgba(200,200,200,0.5);border-radius:12px;pointer-events:none;"><span style="font-weight:800;font-size:13px;color:#333;background:rgba(255,255,255,0.85);padding:3px 10px;border-radius:20px;">준비중</span></div>
                 <div class="bubble-wrap" id="cert-bubble"><div class="bubble" id="cert-bubble-text">요청중!</div></div>
                 <div class="grid-label" style="margin-bottom:6px;">수강<br>증명서</div>
                 <div class="grid-img-wrap">
@@ -518,7 +518,7 @@
                     <span class="grid-icon-fallback" id="icon-cert">🎓</span>
                 </div>
             </button>
-            <button class="grid-main-btn" onclick="openLastInterval()">
+            <button class="grid-main-btn" disabled style="position:relative;opacity:0.5;filter:grayscale(1);cursor:not-allowed;"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;background:rgba(200,200,200,0.5);border-radius:12px;pointer-events:none;"><span style="font-weight:800;font-size:13px;color:#333;background:rgba(255,255,255,0.85);padding:3px 10px;border-radius:20px;">준비중</span></div>
                 <div class="bubble-wrap" id="sign-bubble"><div class="bubble" style="background:#f97316;">서명받기!</div></div>
                 <div class="grid-label" style="margin-bottom:6px;">지난주<br>실습인증</div>
                 <div class="grid-img-wrap">
@@ -941,6 +941,10 @@
             style="width:100%;padding:12px;background:#f0f7ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;display:none;">
             🔒 생체인증으로 재시도
         </button>
+        <button onclick="cancelPin()"
+            style="width:100%;padding:10px;background:none;color:#94a3b8;border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-top:4px;">
+            취소
+        </button>
     </div>
 </div>
 <!-- 담당자 OTP 인증 모달 (서명섹션용) -->
@@ -1273,20 +1277,42 @@ let missingManagerPhone = '';
         }
     }
 
-    async function checkTodayStatus() {
+    async function checkTodayStatus(skipInitReset = false) {
         const inBtn  = document.getElementById('check-in-btn');
         const outBtn = document.getElementById('check-out-btn');
         const badge  = document.getElementById('new-status-badge');
-        inBtn.style.display = 'block';
-        inBtn.disabled = false;
-        inBtn.textContent = '출근';
+        if (!skipInitReset) {
+            inBtn.style.display = 'block';
+            inBtn.disabled = false;
+            inBtn.textContent = '출근';
+        }
         try {
             const now = new Date();
             const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
             const docRef = window.fsDoc(window.db, 'attendance', String(currentUser.kakaoId) + '_' + todayStr);
             const docSnap = await window.fsGetDoc(docRef);
-            const inTime  = docSnap.exists() ? (docSnap.data().inTime  || '') : '';
-            const outTime = docSnap.exists() ? (docSnap.data().outTime || '') : '';
+            let inTime  = docSnap.exists() ? (docSnap.data().inTime  || '') : '';
+            let outTime = docSnap.exists() ? (docSnap.data().outTime || '') : '';
+
+            // Firestore에 기록 없으면 GAS 스프레드시트에서 확인 (Firestore 쓰기 실패 시 백업 복구)
+            if (!inTime) {
+                try {
+                    const gasRes = await fetchWithRetry(CONFIG.GAS_URL, {
+                        body: JSON.stringify({ action: 'getTodayStatus', kakaoId: currentUser.kakaoId })
+                    });
+                    const gasData = await gasRes.json();
+                    if (gasData.status === 'success' && gasData.checkIn) {
+                        // GAS 시간 형식: "yy.MM.dd HH:mm:ss" → "HH:mm"
+                        const timePart = gasData.checkIn.split(' ')[1] || '';
+                        inTime = timePart.substring(0, 5);
+                        if (gasData.checkOut) {
+                            const outPart = gasData.checkOut.split(' ')[1] || '';
+                            outTime = outPart.substring(0, 5);
+                        }
+                    }
+                } catch(e) { /* GAS 폴백 실패 무시 */ }
+            }
+
             if (inTime !== '') {
                 inBtn.disabled = true;
                 inBtn.textContent = '출근 ' + inTime;
@@ -1551,7 +1577,7 @@ let missingManagerPhone = '';
                     }
                 }
             } catch(fsErr) {
-                console.warn('Firestore 출퇴근 실패, GAS 폴백:', fsErr);
+                console.error('Firestore 출퇴근 실패 (GAS로 폴백):', fsErr.code || fsErr.message || fsErr);
             }
 
             // Firestore 실패시 GAS 폴백 + 성공시 GAS에도 백그라운드 기록
@@ -1582,7 +1608,7 @@ let missingManagerPhone = '';
                 }
             } else if (result.status === 'duplicate') {
                 showToast(type + ' 처리가 이미 완료되었습니다.', 'success');
-                if (type === '출근') inBtn.disabled = true; else outBtn.disabled = true;
+                await checkTodayStatus(true);  // 실제 시간과 버튼 상태 반영 (버튼 재활성화 방지)
             } else {
                 showToast('❌ 처리 실패: ' + (result.message || ''), 'error');
                 if (type === '출근') inBtn.disabled = false; else outBtn.disabled = false;
@@ -2412,6 +2438,11 @@ function goBackToStep1() {
         }
     }
 
+    function cancelPin() {
+        document.getElementById('pin-modal').style.display = 'none';
+        if (_pinResolve) { _pinResolve(false); _pinResolve = null; }
+    }
+
     async function retryBiometric() {
         document.getElementById('pin-modal').style.display = 'none';
         const ok = await verifyWebAuthn(_pinKakaoId);
@@ -2516,7 +2547,13 @@ function goBackToStep1() {
         return registered;
     }
     const ok = await verifyWebAuthn(kakaoId);
-    if (!ok) return await verifyOrSetPin(kakaoId);
+    if (!ok) {
+        // 저장된 인증서가 무효(기기 변경, 데이터 삭제 등) → 재등록 시도
+        localStorage.removeItem('webAuthnCredId');
+        const reRegistered = await registerWebAuthn(kakaoId, name);
+        if (!reRegistered) return await verifyOrSetPin(kakaoId);
+        return reRegistered;
+    }
     return true;
 }
 
