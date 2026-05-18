@@ -327,34 +327,31 @@
 </head>
 <body>
 
-<!-- 카카오톡 인앱브라우저 안내 오버레이 -->
-<div id="kakao-inapp-overlay" style="display:none;position:fixed;inset:0;z-index:999999;background:#1a1a2e;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;">
-    <div style="font-size:60px;margin-bottom:20px;">🌐</div>
-    <div style="font-size:24px;font-weight:900;color:#fff;margin-bottom:14px;line-height:1.4;">인터넷 브라우저로<br>열어주세요!</div>
-    <div style="font-size:16px;color:rgba(255,255,255,0.75);margin-bottom:32px;line-height:1.7;">카카오톡 안에서는<br>지문인식 등 일부 기능이<br>작동하지 않아요 😥</div>
+<!-- 카카오톡/네이버 인앱브라우저 안내 오버레이 -->
+<div id="kakao-inapp-overlay" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:#fff;border-radius:24px;padding:28px 22px 24px;max-width:300px;width:100%;text-align:center;">
+        <div style="font-size:15px;color:#64748b;margin-bottom:18px;line-height:1.5;">카카오톡에서는 일부 기능이<br>작동하지 않아요</div>
 
-    <!-- 안드로이드용 버튼 -->
-    <div id="kakao-android-guide" style="display:none;width:100%;max-width:320px;">
-        <button onclick="openInChrome()" style="width:100%;padding:20px;font-size:20px;font-weight:900;background:#10b981;color:#fff;border:none;border-radius:18px;cursor:pointer;box-shadow:0 4px 20px rgba(16,185,129,0.4);">
-            🌐 크롬으로 열기
+        <button id="kakao-copy-btn" onclick="copyUrlForBrowser()" style="width:100%;padding:18px;font-size:19px;font-weight:900;background:#6c63ff;color:#fff;border:none;border-radius:14px;cursor:pointer;margin-bottom:22px;">
+            📋 주소 복사
         </button>
-        <p style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:12px;">버튼을 누르면 크롬 앱이 열려요</p>
-    </div>
 
-    <!-- 아이폰용 안내 -->
-    <div id="kakao-ios-guide" style="display:none;width:100%;max-width:320px;">
-        <div style="background:rgba(255,255,255,0.1);border-radius:18px;padding:22px 20px;margin-bottom:16px;text-align:left;">
-            <div style="color:#fbbf24;font-size:15px;font-weight:900;margin-bottom:14px;text-align:center;">📋 이렇게 열어주세요</div>
-            <div style="color:#fff;font-size:16px;line-height:2.2;">
-                <div>1️⃣ 화면 맨 아래 오른쪽<br>&nbsp;&nbsp;&nbsp;&nbsp;<b style="color:#fbbf24;">··· 버튼</b>을 눌러요</div>
-                <div>2️⃣ <b style="color:#fbbf24;">다른 앱으로 열기</b>를 눌러요</div>
-                <div>3️⃣ <b style="color:#fbbf24;">Safari</b>를 선택해요</div>
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:14px;">복사 후 이 앱을 열고 붙여넣기</div>
+
+        <div style="display:flex;justify-content:center;gap:20px;">
+            <div style="text-align:center;">
+                <img src="https://img.icons8.com/color/96/chrome.png" width="60" height="60" style="border-radius:14px;display:block;" onerror="this.style.display='none'">
+                <div style="font-size:12px;font-weight:700;color:#334155;margin-top:6px;">크롬</div>
+            </div>
+            <div style="text-align:center;">
+                <img src="https://img.icons8.com/color/96/safari.png" width="60" height="60" style="border-radius:14px;display:block;" onerror="this.style.display='none'">
+                <div style="font-size:12px;font-weight:700;color:#334155;margin-top:6px;">사파리</div>
+            </div>
+            <div style="text-align:center;">
+                <img src="https://img.icons8.com/color/96/samsung-internet.png" width="60" height="60" style="border-radius:14px;display:block;" onerror="this.style.display='none'">
+                <div style="font-size:12px;font-weight:700;color:#334155;margin-top:6px;">인터넷</div>
             </div>
         </div>
-        <button onclick="copyAndGuide()" id="kakao-copy-btn" style="width:100%;padding:18px;font-size:18px;font-weight:900;background:#6c63ff;color:#fff;border:none;border-radius:16px;cursor:pointer;">
-            📋 주소 복사하기
-        </button>
-        <p style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:10px;">복사 후 Safari에 붙여넣기 하세요</p>
     </div>
 </div>
 
@@ -976,46 +973,28 @@
     // ==================== 인앱브라우저 감지 (카카오톡/네이버) ====================
     (function() {
         if (!/KAKAOTALK|NAVER/i.test(navigator.userAgent)) return;
-        const overlay = document.getElementById('kakao-inapp-overlay');
-        overlay.style.display = 'flex';
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isIOS) {
-            document.getElementById('kakao-ios-guide').style.display = 'block';
-        } else {
-            document.getElementById('kakao-android-guide').style.display = 'block';
-        }
+        document.getElementById('kakao-inapp-overlay').style.display = 'flex';
     })();
 
-    function openInChrome() {
-        const url = location.href;
-        const host = location.host;
-        const path = location.pathname + location.search + location.hash;
-        location.href = 'intent://' + host + path + '#Intent;scheme=https;package=com.android.chrome;end';
-    }
-
-    function copyAndGuide() {
-        const url = location.href;
+    function copyUrlForBrowser() {
         const btn = document.getElementById('kakao-copy-btn');
-        const copy = (text) => {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                return navigator.clipboard.writeText(text);
-            }
+        const url = location.href;
+        const done = () => {
+            btn.textContent = '✅ 복사됐어요!';
+            btn.style.background = '#10b981';
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done).catch(done);
+        } else {
             const el = document.createElement('textarea');
-            el.value = text;
-            el.style.position = 'fixed';
-            el.style.opacity = '0';
+            el.value = url;
+            el.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
             document.body.appendChild(el);
             el.focus(); el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            return Promise.resolve();
-        };
-        copy(url).then(() => {
-            btn.textContent = '✅ 복사됐어요!';
-            btn.style.background = '#10b981';
-        }).catch(() => {
-            btn.textContent = '주소: ' + url;
-        });
+            done();
+        }
     }
 
     // ==================== 전역 변수 ====================
